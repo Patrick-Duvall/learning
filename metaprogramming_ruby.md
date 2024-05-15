@@ -63,3 +63,25 @@ if you do, after the lookup, object.send(:method_missing, :missing_method_name) 
 ^^ raises an error in kernal.
 
 A message that’s processed by method_missing() looks like a regular call from the caller’s side but has no corresponding method on the receiver’s side
+
+## Dynamic proxies
+flickr uses method missing to convert non-existent method  calls to methods and arguments which it forwards to flickr
+
+object that catches method missing and forwards them is a dynamic proxy
+
+ghost methods do not show up in `respond_to?`
+
+const_missing does  the same thing as method missing for const's
+
+since unknown calls become calls to method_missing( ), your object might accept a call that’s just plain wrong, which can be hard to fgiure out. 
+
+Can run into an issue if something higher on inheritance tree defines method, never hit method missing
+
+Blank slate classes do not have inherited methods
+
+## summary
+in dynamic languages, you can look for duplication among your methods
+
+Dynamic methods (defining methods with define_method()) and dynamic dispatch (at runtime using send or public_send to send a specific message to an object)
+
+Dynamic proxy catches method missing and forwards it
