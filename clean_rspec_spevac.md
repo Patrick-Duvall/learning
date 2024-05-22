@@ -59,5 +59,3 @@ refactor to
 messenger = double
 expect(Messenger).to_receive(:new).with(participant) { messenger }
 expect(messenger).to_receive(:notify)
-
-
