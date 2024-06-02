@@ -85,3 +85,52 @@ in dynamic languages, you can look for duplication among your methods
 Dynamic methods (defining methods with define_method()) and dynamic dispatch (at runtime using send or public_send to send a specific message to an object)
 
 Dynamic proxy catches method missing and forwards it
+
+## Chapter 3 Blocks
+- Blocks powerful tool controlling scope
+
+## 3.1 Overview
+```
+def
+  a_method(a, b) a + yield(a, b)
+end
+
+a_method(1,2){|x,y|(x+y)*3} #=>10
+```
+in ruby all methods can implicitly accept blocks
+yield evals code in block, blocks return last line evaluated
+
+## 3.2 exercise
+Code that runs consists of the code itself and variable bindings.
+
+## 3.3 Closures
+Blocks include code and a set of bindings
+
+```
+def my_method
+  greeting = "Goodbye"
+  yield("cruel" ) ## Here yield provides the argument for the block
+end
+
+greeting = "Hello"
+my_method {|yielded| "#{greeting}, #{yielded} world" } # => "Hello, cruel world"
+```
+
+A block is a closure, it captures the local bindings and carries them along with it
+A block captures the bindings that are around when you first define the block
+### Scope
+
+Unlike java/ C# ruby scopes cannot look out to higher scopes
+
+#### Scope gates
+Three places where a program leaves the scope and opens a new one
+- Class definitions
+- Module definitions
+- method definitions
+
+$var_name global variable => accessible anywhere (use sparingly or never)
+consider setting ivars on main object instead
+
+#### Flattening the scope gate
+
+The more you become proficient in Ruby, the more you get into difficult situations where you want to pass bindings through a Scope Gate 
