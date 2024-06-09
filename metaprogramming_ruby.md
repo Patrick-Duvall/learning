@@ -134,3 +134,88 @@ consider setting ivars on main object instead
 #### Flattening the scope gate
 
 The more you become proficient in Ruby, the more you get into difficult situations where you want to pass bindings through a Scope Gate 
+
+If you want to sneak a binding or two through a Scope Gate, you can replace the Scope Gate with a method call: you capture the current bindings in a closure and pass the closure to the method. You can replace class with Class.new( ), module with Module.new, and def with Module#define_method( )
+
+Speculation: we don't think about scopes much in ruby because ivars are accessed directly or as methods and not obstructed by the scope gate
+
+Also, arguments are a one way street to pass variables through a scope gate
+
+#### 3.4 Instace Eval
+```ruby
+class MyClass
+  def initialize
+    @var = 1
+  end
+end
+obj = MyClass.new obj.instance_eval do
+  self # => #<MyClass:0x3340dc @v=1>
+  @var # => 1
+end
+```
+
+With instance_eval, the block is evaluated with the receiver as self, so it can access the receiver’s private methods and instance variables
+
+Both `#instance_eval` and `#send` allow you to pass normal visibility rules but iinstance_eval has access to ivar's and changes the receiver to self.
+
+`#instance_exec` same as eval ^^^ but can pass arguments to the block.
+
+Instance eval is a context probe. Breaks encapsulation, but can be useful in testing
+
+Clean Room: Object created to evaluate blocks inside of.
+```ruby
+class CleanRoom; end
+clean_room = CleanRoom.new
+clean_room.instance_eval do
+   # This block is evaluated in the context of clean_room
+end
+```
+
+### 3.5 callable objects
+
+#### Procs
+Most things in ruby are objects, blocks are not
+A Proc is a block turned into an object
+
+A block is like an additional, anonymous argument to a method. In most cases, you execute the block right there in the method, using yield. There are two cases where yield is not enough:
+• You want to pass the block to another method.
+• You want to convert the block to a Proc.
+```ruby
+def math(a, b); yield(a, b) ;end
+def teach_math(a, b, &operation)
+  puts "Let's do the math:"
+  puts math(a, b, &operation)
+end
+
+teach_math(2, 3) {|x, y| x * y}
+⇒ Let's do the math: 6
+```
+
+#### Procs Vs Lambdas 
+- Very similar 2 main differences
+(skip to methods per instructions)
+
+#### Callable Objects Wrap-Up
+Callable objects are snippets of code that you can evaluate, and they carry their own scope along with them. They can be the following:
+• Blocks (they aren’t really “objects,” but they are still “callable”): Evaluated in the scope in which they’re defined.
+• Procs: Objects of class Proc. Like blocks, they are evaluated in the scope where they’re defined.
+• Lambdas: Also objects of class Proc but subtly different from reg- ular procs. They’re closures like blocks and procs, and as such they’re evaluated in the scope where they’re defined.
+• Methods: Bound to an object, they are evaluated in that object’s scope. They can also be unbound from their scope and rebound to the scope of another object.
+
+### 3.6 Writing a domain specific language
+
+```ruby
+def event(name)
+  puts "ALERT: #{name}" if yield
+end
+
+event "monthly sales are suspiciously high" do
+  monthly_sales > target_sales
+end
+
+event "monthly sales are abysmally low" do
+  monthly_sales < target_sales
+end
+# Calls event method with a name and a block to evaluate if ALERT should be printed
+```
+
