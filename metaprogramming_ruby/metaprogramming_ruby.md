@@ -219,3 +219,56 @@ end
 # Calls event method with a name and a block to evaluate if ALERT should be printed
 ```
 
+## Chapter 4, class definitions
+In Java and C#, defining a class is like making a deal between you and the compiler. You say, “Here’s how my objects are supposed to behave,” 
+
+
+
+In Ruby, when you use the class key- word, you aren’t dictating how objects will behave in the future, you're running code now.
+
+### 4.1 Class definitions
+
+#### Inside Class definitions
+Class definitions return last evaluated statement like a method
+Inside a class the class takes on the role of self
+
+#### The Current class
+
+`class` keyword has a limitation: needs name of class to open.
+Enter `class_eval/module_eval`
+
+```ruby
+def add_method_to(a_class)
+  a_class.class_eval do
+  def m; 'Hello!'; end end
+end
+
+add_method_to String
+"abc".m # => "Hello!"
+```
+
+instance_eval() only changes self, while class_eval() changes both self and the current class(Sort of but safe to think of this way)
+
+In this way, class_eval effectively opens the class, similar to the `class` keyword.
+
+You can use `class_eval` on any variable that references the class, while class requires a constant.
+
+```ruby
+klass = String
+klass.class_eval do
+  def hello
+    "Hello, I am a #{self}"
+  end
+end
+```
+
+class opens a new scope, losing sight of the current bindings, while `class_eval` has a Flat Scope, allowing you to reference variables in the outer scope.
+
+#### Class Wrap up
+-  In a class definition, the current object self is the class being defined.
+- The Ruby interpreter always keeps a reference to the current class/module. All methods defined with def become instance methods of the current class.
+- In a class definition, the current class is the same as self—the class being defined.
+- If you have a reference to the class, you can open the class with `class_eval` or `module_eval`
+
+#### Class Instance Variables
+
