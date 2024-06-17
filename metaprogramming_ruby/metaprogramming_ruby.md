@@ -182,6 +182,7 @@ A block is like an additional, anonymous argument to a method. In most cases, yo
 • You want to convert the block to a Proc.
 ```ruby
 def math(a, b); yield(a, b) ;end
+
 def teach_math(a, b, &operation)
   puts "Let's do the math:"
   puts math(a, b, &operation)
