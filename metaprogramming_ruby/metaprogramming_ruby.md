@@ -273,3 +273,154 @@ class opens a new scope, losing sight of the current bindings, while `class_eval
 
 #### Class Instance Variables
 
+Ruby interpreter assumes all ivars belong to current object, as such 
+``ruby
+class newClass
+  @variable # class instance variable not same as below
+
+  def initialize
+    @variable #this, instance variable
+  end
+end
+```
+
+#### Bookworm problem
+- write spec for to_s, but you dont know the time the book was loaned
+```ruby 
+class Loan
+  def initialize(book)
+    @book = book
+    @time = Time.now
+  end
+
+  def to_s
+    "#{@book.upcase} loaned on #{@time}"
+  end
+end
+```
+
+You can also use class variables @@variable instead of class instance variables
+But this can be surprising since class varaibles dont belong to classes, they belong to heirarchies. Below @@v is defined in context of main and belongs to Object, which MyClass can then change
+```ruby
+@@v = 1
+class MyClass
+  @@v = 2
+end
+@@v #=>2
+```
+
+For this reason prefer class instance varaibles generally
+
+Interesting note: `@time_class || Time` is a form of a guard clause
+
+Book solution to 
+```ruby 
+class Loan
+  def initialize(book)
+    @book = book
+    @time = Time.now
+  end
+
+  def self.time_class
+    @timeclass || time
+  end
+
+  def to_s
+    "#{@book.upcase} loaned on #{@time}"
+  end
+end
+
+### Spec 
+
+class FakeTime
+  def self.now
+    'Mon Apr 06 12:15:50'
+  end
+end
+
+class TestLoan < Test::Unit::TestCase
+  def test_conversion_to_string
+    Loan.instance_eval { @time_class = FakeTime }
+    loan = Loan.new('War and Peace')
+    assert_equal 'WAR AND PEACE loaned on Mon Apr 06 12:15:50', loan.to_s
+  end
+end
+```
+
+This uses `@time_class` in the context of the spec with instance eval to have a testable assertion on the time, while not tests will not have this class ivar and use `Time`. But seems problematic to me as generally testing needs should not drive implementation code.
+
+## 4.2 Quiz taboo
+
+### 4.3 singleton methods
+
+Problem:  The Below class has a method `:title?` that is the only functionality different than a string. Class does not do enough to justify existing *but* we want to preserve the `:title?` behavior. No monkye patch, since it doesnt make sense for all strigns to respond to `:title?`
+```ruby
+class Paragraph
+  def initialize(text)
+  @text = text
+  end
+
+  def title?; @text.upcase == @text; end
+end
+```
+
+You can add singleton methods to a object by calling `def object.method_name` i.e.
+```ruby
+paragraph = "any string can be a paragraph"
+
+def paragraph.title?
+  self.upcase == self
+end
+```
+
+this allows us to discard the paragraph class. ( I am currently wondering if this is any better than something like  `def is_title(string)` and just performing a comparison inside there)
+
+In Duck typing as long as objects respond to method calls, we don't care if they are instance methods, singleton methods, or even ghost methods.
+
+#### The truth about class methods
+classes are just objects and class names are just constants
+```ruby
+an_object.a_method
+AClass.a_class_method
+```
+
+Class methods are just singleton methods of a class.
+Below jsut takes advantage of the fact that self is a the class in the context of a class definition.
+```ruby
+class MyClass
+  def self.yet_another_class_method; end
+end
+```
+
+#### Class Macros
+
+attr_accessor
+Ruby objects dont have attributes, attribute behavior is defined through methods of a reader and a writer
+
+attr_* methods are class macros, they look like keywords but are regular class methods meant to be used in a class definition
+
+#### Class Macros Applied
+Problem statement: poorly named methods that are called by users of your application you have no control over.
+
+You can rename the methods if you make a class macro to deprecate the old names.
+```ruby
+def self.deprecate(old_method, new_method) define_method(old_method) do |*args, &block|
+  warn "Warning: #{old_method}() is deprecated. Use #{new_method}()."
+  send(new_method, *args, &block)
+end
+
+deprecate :GetTitle, :title
+deprecate :LEND_TO_USER, :lend_to
+deprecate :title2, :subtitle
+
+book = Book.new
+book.LEND_TO_USER("Bill" )
+
+⇒ Warning: LEND_TO_USER() is deprecated. Use lend_to().
+Lending to Bill
+```
+
+### 4.4 EigenClasses
+
+
+
