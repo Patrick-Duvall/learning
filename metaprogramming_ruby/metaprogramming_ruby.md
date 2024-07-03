@@ -422,5 +422,72 @@ Lending to Bill
 
 ### 4.4 EigenClasses
 
+UFO's of ruby might never see, but signs are there
+
+#### Mystery Singleton Methods
+Ruby finds methods by going Right into reciever class, then Up heirarchy
+
+Where do singleton methods live? `object` is not a class, not on class or all instances of that class would share it
+```ruby
+def object.my_singleton_method; end
+```
+#### Eigenclass revealed
+When you ask a ruby object for its class, there is a hidden class that `Object#class` does not expose
+
+if you want reference to eigenclass, return self out of scope
+An eigen class is where an object's singleton methods live
+```ruby
+obj = Object.new
+eigenclass = class << obj
+  self
+end
+
+def obj.my_singleton_method; end
+eigenclass.instance_methods.grep(/my_/) # => ["my_singleton_method"]
+```
+### Method Lookup revisited
+Helper method to get eigenclass
+```ruby
+class Object
+  def eigenclass
+    class << self; self; end
+  end
+end
+```
+
+If an object has an eigenclass, Ruby starts looking for methods in the eigenclass rather than the conventional class, and that’s why you can call Singleton Methods such as obj#a_singleton_method(). If Ruby can’t find the method in the eigenclass, then it goes up the ancestors chain
+
+#### EigenClasses and inheritance
+Syntax note: Class denotes a conventional class #Class denotes an eigenclass. S and C in diagram denote class and superclass
+
+An `object`'s true class is it's eigenclass `#object`.
+That `#object`'s class is the `class` of `object` `object.eigenclass.class == object.class`
+
+| Classes | Eigenclasses |
+|----------|----------|
+| Object C->    | #Object     |
+| CClass S^ C->   | #CClass S^    |
+| DClass S^ C->    | #DClass S^    |
 
 
+Define a method on CClass
+```ruby
+class CClass
+  def self.class_method; end
+end
+```
+
+Even if `class_method` is defined on C, you can also call it on D. This is probably what you expect, but it’s only possible because method lookup starts in #D and goes up to #D’s superclass #C, where it finds the method.
+
+#### Great Unified theory
+7 rules of the Ruby Object Model
+
+1. There is only one kind of object, be it an object or a module
+1. There is only one kind of module, be it a regular module, class, eigenclass, or proxy class.
+1. There is only one kind of method and it live in a module, most often in a class.
+1. Every object, classes included, has it's own 'real class' be it an eigenclass, or a super class.
+1. Every class has exactly one superclass, save `BasicObject` This means there is a single ancestor heirarchy from any object to `BasicObject`
+1. The superclass of the eigenclass of an object is the eigenclass of that classes superclass.
+1. When you call a method, ruby goes 'right' to the object's real class, then 'up' the ancestor chain
+
+#### Class Attributes
