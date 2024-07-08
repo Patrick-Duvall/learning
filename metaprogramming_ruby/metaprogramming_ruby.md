@@ -491,3 +491,45 @@ Even if `class_method` is defined on C, you can also call it on D. This is proba
 1. When you call a method, ruby goes 'right' to the object's real class, then 'up' the ancestor chain
 
 #### Class Attributes
+
+To define a class attribute (similar to instance attr_accessors) Open a class' eigenclass and define the `attr_accessor`s there.
+
+`Object#extend` is simply a shortcut that includes a module in the receiver’s eigenclass
+
+```ruby
+module MyModule
+  def my_method; 'hello'; end
+end
+
+obj = Object.new
+obj.extend MyModule
+obj.my_method => 'hello'
+```
+
+### 4.6 aliases
+
+You can give an alternate name to a Ruby method by using the `alias`
+keyword
+
+### Around aliases
+
+```ruby
+class String
+  #This creates an alias for the original length method. 
+  alias :real_length :length 
+
+  def length
+    real_length > 5 ? 'long' : 'short'
+  end
+end
+```
+In the above example we call write a new method `length` but can still call the old `length` method by calling it's alias `real_length`
+
+1. You alias a method.
+2. You redefine it.
+3. You call the old method from the new method.
+
+### 4.7 quiz: broken math
+Most Ruby operators are actually Mimic Methods (241).” For example, the + operator on integers is syntactic sugar for a method named Fixnum#+( ). When you write 1 + 1, the parser internally converts it to 1.+(1).
+
+## Chapter 5 Code that writes code.
