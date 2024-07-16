@@ -533,3 +533,90 @@ In the above example we call write a new method `length` but can still call the 
 Most Ruby operators are actually Mimic Methods (241).” For example, the + operator on integers is syntactic sugar for a method named Fixnum#+( ). When you write 1 + 1, the parser internally converts it to 1.+(1).
 
 ## Chapter 5 Code that writes code.
+
+### 5.1 assignment: 
+
+### 5.2
+Kernal#eval takes a string of code and evaluates it 
+```ruby
+array = [10, 20]
+element = 30
+eval("array << element") # => [10, 20, 30]
+```
+
+You can create a Binding with the Kernel#binding method
+Binding is a scope packaged as an object
+
+IRB calls  `eval(statements, @binding, file, line)`
+irb sets the @binding variable to evaluate your commands in the context of that object, similar to what instance_eval( ) does.
+
+Strings of code have some downsides and you should prefer blocks
+1: syntax highlighting
+2: Security
+
+example
+Create a `array_explorer` that returns the value of any array method, expose it via we bsite/UI
+
+```ruby
+def explore_array(method)
+  code = "['a', 'b', 'c'].#{method}" puts "Evaluating: #{code}"
+  eval code
+end
+
+# user feeds string
+⇐ object_id; Dir.glob("*")
+⇒ ['a', 'b', 'c'].object_id; Dir.glob("*") => [your own private information here]
+# above ; causes in line line break, so after the id call it logs all the names/files in the current directory
+
+```
+
+Only strings that derive from an external source can contain malicious code,
+
+#send is similar, but you have to pass the mehod names and arguments seperately
+``` ruby
+def explore_array(method, *arguments)
+  ['a', 'b', 'c'].send(method, *arguments)
+end
+```
+
+
+#### Tainted objects
+Ruby automatically marks objects that come from external sources as 'tainted'
+
+
+you can set safe levels in your code that will. Any safety level higher than 0 refuses to eval tainted strings
+```ruby
+$SAFE = 1
+user_input = "User input: #{gets()}" eval user_input
+⇐ x=1
+⇒ SecurityError: Insecure operation - eval
+```
+
+By using safe levels carefully, you can write a controlled environment for `eval`9 Such an environment is called a Sandbox. Let’s take a look at a sandbox taken from a real-life library: ERB
+
+```ruby
+#template.rhtml
+<p><strong>Wake up!</strong> It's a nice sunny <%= Time.new.strftime("%A") %>.</p>
+
+#
+require 'erb'
+erb = ERB.new(File.read('template.rhtml'))
+erb.run
+
+ <p><strong>Wake up!</strong> It's a nice sunny Friday.</p>
+
+#Inside ERB code vv
+class ERB
+def result(b=TOPLEVEL_BINDING)
+  if @safe_level proc {
+    $SAFE = @safe_level
+    eval(@src, b, (@filename || '(erb)'), 1) }.call
+  else
+    eval(@src, b, (@filename || '(erb)'), 1)
+  end
+end
+```
+
+In this code, the `@src` is the code inside the <% %> block. If a safe level is provided, the @src is evaluated in the context of a clean room, else, it is simply evaluated.
+
+### 5.7 Hook methods
