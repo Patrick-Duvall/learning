@@ -620,3 +620,37 @@ end
 In this code, the `@src` is the code inside the <% %> block. If a safe level is provided, the @src is evaluated in the context of a clean room, else, it is simply evaluated.
 
 ### 5.7 Hook methods
+
+`inherited` and `included` are instance method of Class, and Ruby calls them when a class is inherited.
+By defualt do nothing, but can override
+
+can be used to define class methods on the including  class
+Normally including adds instance methods, and extending adds class methods, this pattern can be used to have both in a single module
+
+``` ruby
+module MyMixin
+  def self.included(base)
+    base.extend(ClassMethods)
+  end
+
+  def instance_method
+    'instance_method()'
+  end
+
+  module ClassMethods
+    def class_method
+      "class_method()"
+    end
+  end
+end
+```
+
+## CH 6 Epilogue
+
+Metagprogramming is just programming
+
+# Metaprogramming in Rails
+
+## CH 7 Design of ActiveRecord
+
+
