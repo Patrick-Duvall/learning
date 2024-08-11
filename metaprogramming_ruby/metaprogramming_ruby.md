@@ -653,4 +653,109 @@ Metagprogramming is just programming
 
 ## CH 7 Design of ActiveRecord
 
+### 7.1 preparing tour
+ActiveRecord - M in mvc
+ActionPack - VC in mvc
+ActiveSupport - utilities(logging, time, etc)
 
+### 7.2 Design of ActiveRecord
+Object Relational Mapper, maps DB records to ruby objects
+
+Simplified version of how Active record uses ghost methods to define methods from DB schema
+
+```ruby
+class ActiveRecord::Base
+  def method_missing(name, *args)
+    if name.to_s.start_with?('find_by_')
+      # Handle dynamic finders like find_by_name
+      column_name = name.to_s.split('find_by_')[1]
+      find_by(column_name: args.first)
+    elsif self.class.column_names.include?(name.to_s)
+      # Handle attribute methods like name and name=
+      # ...
+    else
+      super
+    end
+  end
+end
+```
+
+#### ActiveRecord::Base
+remember, around aliases are code that add functionality to an existing method, without around aliasing is a technique that allows you to wrap functionality around an existing method call while still preserving the original behavior 
+1. you have an existing method you want to mdify `original_method`
+1. define a new method `new_method`, with new behavior that calls the old method 
+1. use `alias_method` to alias `original_method`, preserving its behavior
+1. use `alias_method` to alias `new_method` with the un-aliased name of `original_method`
+
+```ruby
+class MyClass
+  def greet_with_log
+    puts "Calling method..." greet_without_log
+    puts "...Method called"
+  end
+
+  alias_method :greet_without_log, :greet
+  alias_method :greet, :greet_with_log
+end
+
+MyClass.new.greet
+=> Calling method... Hello!
+=> Method called
+```
+
+Rails aliasing code
+```ruby
+module Module
+  def alias_method_chain(target, feature) # target is method to chaiin, feature is new feature
+  # Strip out punctuation on predicates or bang methods since
+  # e.g. target?_without_feature is not a valid method name. aliased_target, punctuation = target.to_s.sub(/([?!=])$/, ''), $1 yield(aliased_target, punctuation) if block_given?
+  with_method, without_method = "#{aliased_target}_with_#{feature}#{punctuation}" , "#{aliased_target}_without_#{feature}#{punctuation}"
+  # example, if target is save and feature is validation, with_method will be `save_with_validation` and `without_method` will be save_without_validation.
+
+  alias_method without_method, target # creates a method with the without_method name that has the same behavior as the original target
+  alias_method target, with_method # creates a method with the target name that has the same behavior as the with_method.
+  case # sets visibility of new target method
+    when public_method_defined?(without_method)
+      public target
+    when protected_method_defined?(without_method)
+      protected target
+    when private_method_defined?(without_method)
+      private target
+    end
+  end
+end
+```
+^^ Code that write the Rails around aliases
+
+
+```ruby
+module ActiveRecord module Validations
+  def self.included(base) base.extend ClassMethods
+    base.class_eval do
+      alias_method_chain :save, :validation # save is defined as `save_with_validation`, while you can stil call `save_without_validation` manually
+      alias_method_chain :save!, :validation
+    end
+    base.send :include, ActiveSupport::Callbacks
+  end
+  ```
+
+Recap.
+
+`ActiveRecord::Base` is an open class that includes modules such as ``ActiveRecord::Validations` These modules add class and instance_methods to AR::Base
+
+### 7.3 lessons
+ No Java coder in their right mind would ever write a library that consists almost solely of a single huge class with many hundreds of methods.
+
+ thanks to their dynamically typed nature, ActiveRecord’s modules are more decoupled than Java classes and easier to use in isolation. If you only need the valida- tion features, you can include ActiveRecord::Validation in your own class
+
+#### Think in modules
+Ways modules add methods
+
+• Include the module in a class, and the methods become instance methods of the class.
+• Include the module in the eigenclass of a class, and the methods become class methods.
+• Include the module in the eigenclass of any generic object, and the methods become Singleton Methods of the object.
+
+## Ch8 Inside Active Record
+We're going to look at dynamic attributes and dynamic finders
+
+### 8.1 Dynamic Attributes
