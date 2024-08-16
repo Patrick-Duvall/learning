@@ -759,3 +759,92 @@ Ways modules add methods
 We're going to look at dynamic attributes and dynamic finders
 
 ### 8.1 Dynamic Attributes
+
+```ruby
+require 'activerecord'
+ActiveRecord::Base.establish_connection(adapter: "sqlite3" database: "dbfile")
+ActiveRecord::Base.connection.create_table :tasks do |t|
+  t.string :description
+  t.boolean :completed
+end
+
+class Task < ActiveRecord::Base; end
+task = Task.new
+task.description = 'Clean up garage'
+task.completed = true
+
+task.save
+task.description    # => "Clean up garage"
+task.completed?     # => true
+```
+
+The previous code calls four Mimic Methods  to access the object’s attributes: two “write” methods (description=() and completed=()), one “read” method (description( )), and one “question” method (completed?( )). None of these “attribute accessors” comes from the definition of Task. So, where do they come from?
+
+#### Ghost attributes
+
+```ruby
+def method_missing(method_id, *args, &block)
+  method_name = method_id.to_s
+  if self.class.private_method_defined?(method_name)
+    raise NoMethodError.new("Attempt to call private method", method_name, args)
+  end
+  # If we haven't generated any methods yet, generate them, then # see if we've created the method we're looking for.
+  if !self.class.generated_methods? # the first time we call these we generate methods from the DB columns for the ActiveRecord object
+    self.class.define_attribute_methods
+  if self.class.generated_methods.include?(method_name)
+    return self.send(method_id, *args, &block)
+  end
+end
+```
+
+Below, code to define readers/writers
+
+```ruby
+def define_attribute_methods
+  return if generated_methods?
+  columns_hash.each do |name, column|
+    unless instance_method_already_implemented?(name) # safeguard to prevent involuntary monkey patch
+      if self.serialized_attributes[name]
+        define_read_method_for_serialized_attribute(name)
+      elsif create_time_zone_conversion_attribute?(name, column)
+        define_read_method_for_time_zone_conversion(name)
+      else
+        define_read_method(name.to_sym, name, column)
+      end
+    end
+
+    unless instance_method_already_implemented?("#{name}=") #attr_writers
+      if create_time_zone_conversion_attribute?(name, column)
+        define_write_method_for_time_zone_conversion(name)
+      else
+        define_write_method(name.to_sym)
+      end
+    end
+
+    unless instance_method_already_implemented?("#{name}?")
+      define_question_method(name)
+    end
+  end
+end
+```
+
+Code for writing attrs
+```ruby
+def define_write_method(attr_name)
+  evaluate_attribute_method(attr_name, "def #{attr_name}=(new_value);write_attribute('#{attr_name}'new_value);end","#{attr_name}=")
+end
+
+def evaluate_attribute_method(attr_name, method_definition, method_name=attr_name) #takes an attr_name, string of code for method definition, and method name, calls class eval with the code of string to define writer method
+  unless method_name.to_s == primary_key.to_s
+    generated_methods << method_name
+  end
+
+  begin
+    class_eval(method_definition, __FILE__, __LINE__) # File line used for debugging
+  rescue SyntaxError => err
+  generated_methods.delete(attr_name) 
+  end
+end
+```
+
+When you access an attribute for the first time, that attribute is a Ghost Method. `ActiveRecord:: Base#method_missing` takes this chance to turn the Ghost Method into a real method. While it’s there, `method_missing` also dynamically defines read, write, and question accessors for all the other database columns. The next time you call that attribute, or another database-backed attribute, you find a real accessor method waiting for you, and you don’t enter `method_missing`.
