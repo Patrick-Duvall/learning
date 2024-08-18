@@ -848,3 +848,122 @@ end
 ```
 
 When you access an attribute for the first time, that attribute is a Ghost Method. `ActiveRecord:: Base#method_missing` takes this chance to turn the Ghost Method into a real method. While it’s there, `method_missing` also dynamically defines read, write, and question accessors for all the other database columns. The next time you call that attribute, or another database-backed attribute, you find a real accessor method waiting for you, and you don’t enter `method_missing`.
+
+#### Attributes that stay dynamic
+Sometimes we dont want to define accessors—for example, for attributes that are not backed by a database column, like calculated fields.
+
+```ruby # continuation of above method missing
+def method_missing(method_id, *args, &block)
+# ...
+  if self.class.primary_key.to_s == method_name
+    id # if the method is id, return id
+  elsif md = self.class.match_attribute_method?(method_name) # applies a regular expression to check whether the name of the method you called ends with a known extension (such as ? or =) and returns a MatchData object. Then it uses the extension to build the name of a “handler method,” like `attribute?` or `attribute=`, and it calls the handler with a Dynamic Dispatch.
+    attribute_name, method_type = md.pre_match, md.to_s
+    if @attributes.include?(attribute_name)
+      __send__("attribute#{method_type}", attribute_name, *args, &block)
+    else
+      super
+    end
+  elsif @attributes.include?(method_name)
+    read_attribute(method_name)
+  else
+    super # will raise attribute missing error, unless method missing overwritten higher up
+  end
+end
+```
+
+#### ActiveRecord::Base#respond_to?
+If we alter method missing, we should probablyh alter `respond_to`
+For example, if I can call my_task.description( ), then I expect that `my_task. respond_to?(:description)` returns true. Here is the redefined `respond_to?` of `ActiveRecord::Base`
+
+```ruby
+def respond_to?(method, include_private_methods = false)
+  method_name = method.to_s
+  if super
+    return true #responds if parent implements
+  elsif !include_private_methods && super(method, true)
+  # If we're here than we haven't found among non-private methods
+  # but found among all methods. Which means that given method is private.
+    return false
+  elsif !self.class.generated_methods? # if generated methods arent present, generate them
+    self.class.define_attribute_methods
+    if self.class.generated_methods.include?(method_name)
+      return true
+    end
+  end
+
+  if @attributes.nil? # delegate to parent
+    return super
+  elsif @attributes.include?(method_name)  # return true since it's an attr
+    return true
+  elsif md = self.class.match_attribute_method?(method_name) #Perform same regex check as `method_missing`
+    return true if @attributes.include?(md.pre_match)
+  end
+
+  super
+end
+```
+
+### 8.2 Dynamic finders
+ActiveRecord offers an elegant alternative to `find` with so-called dynamic finders, which let you specify attributes right in the method name:
+
+```ruby
+Task.find_all_by_completed(true)
+Task.find_by_description_and_completed('Clean up garage', true)
+Task.find_or_create_by_description('Water plants')
+```
+
+Dynamic finders are class methods, so you have to look for the class’s `method_missing`, not the instances’ `method_missing`.
+
+DENSE BIG METHOD COME BACK FRESH
+
+#### ActiveRecord::Base.respond_to?
+
+Consistent with `ActiveRecord::Base#method_missing`, in the sense that it knows about dynamic finders and other Ghost Methods
+
+```ruby
+class ActiveRecord::Base
+  class << self # Class methods
+    def respond_to?(method_id, include_private = false)
+      if match = DynamicFinderMatch.match(method_id) #check dynamic finder
+        return true if all_attributes_exists?(match.attribute_names)
+      elsif match = DynamicScopeMatch.match(method_id) #check dynamic scopde
+        return true if all_attributes_exists?(match.attribute_names)
+      end
+      super # delegate probably to  default respond_to? method provided by Ruby
+    end
+  #...
+```
+
+### 8.3 Lessons learned
+
+#### Don't Obsess over performance
+profile their code in a real-life system to discover where the performance bottlenecks are, THEN optimize
+
+Calling a real method is faster than calling a Ghost Method, so Rails chooses to define real methods to access attributes. On the other hand, defining a method also takes time, so Rails doesn’t do that until it’s sure that you really want to access at least one attribute on your ActiveRecord objects.
+
+#### Draw your own line
+
+ The mechanism for dynamic attributes in Rails is relatively simple and clean, considering how complex the feature itself is. On the other hand the code behind dynamic finders relies on evaluating complicated strings, and I wouldn’t exactly jump at the chance to maintain that code.
+
+ ### Complexity for Beginners vs. Complexity for Experts
+ For an experienced Ruby coder, metaprogramming code can actually look simple and perfectly readable. Remember, though, that not everybody is as familiar with metaprogramming.
+
+ #### Internal Complexity vs. External Complexity
+ If you stripped all meta- programming out of ActiveRecord, you’d end up with a tamer code base, but the library itself wouldn’t be nearly as simple to use. You’d miss all the magic methods like `task.completed=` or `Task.find_by_description`.
+
+ Common trade off by making the insides of your code more complex, you make your library simpler for clients.
+
+ #### Complexity by Terseness vs. Complexity by Duplication
+
+ One of the basic principles of the Rails philosophy is “don’t repeat yourself,” and the dynamic finders code makes a choice that’s consistent with that principle.
+
+ #### Complexity for Humans vs. Complexity for Tools
+
+ Ruby’s dynamic nature makes life hard for refactoring engines or code analysis tools. That’s why some IDE features that work great for static languages (such as finding all the calls to a method, renaming a variable, or jumping from a method usage to its definition) are difficult to implement well in Ruby. 
+
+ One of the fundamental trade-offs of metaprogramming (and, to a point, of dynamic languages). You have the freedom to write expressive, terse code, but to read that code, you need a human brain.
+
+ ## Ch9 Metaprogramming safely
+ Metaprogramming gives you the power to write beautiful, concise code.
+ Metaprogramming gives you the power to shoot yourself in the foot. 
