@@ -645,13 +645,13 @@ module MyMixin
 end
 ```
 
-## CH 6 Epilogue
+## Chapter 6 Epilogue
 
 Metagprogramming is just programming
 
 # Metaprogramming in Rails
 
-## CH 7 Design of ActiveRecord
+## Chapter 7 Design of ActiveRecord
 
 ### 7.1 preparing tour
 ActiveRecord - M in mvc
@@ -755,7 +755,7 @@ Ways modules add methods
 • Include the module in the eigenclass of a class, and the methods become class methods.
 • Include the module in the eigenclass of any generic object, and the methods become Singleton Methods of the object.
 
-## Ch8 Inside Active Record
+## Chapter 8 Inside Active Record
 We're going to look at dynamic attributes and dynamic finders
 
 ### 8.1 Dynamic Attributes
@@ -873,7 +873,7 @@ end
 ```
 
 #### ActiveRecord::Base#respond_to?
-If we alter method missing, we should probablyh alter `respond_to`
+If we alter method missing, we should probably alter `respond_to`
 For example, if I can call my_task.description( ), then I expect that `my_task. respond_to?(:description)` returns true. Here is the redefined `respond_to?` of `ActiveRecord::Base`
 
 ```ruby
@@ -915,7 +915,7 @@ Task.find_or_create_by_description('Water plants')
 
 Dynamic finders are class methods, so you have to look for the class’s `method_missing`, not the instances’ `method_missing`.
 
-DENSE BIG METHOD COME BACK FRESH
+TODO Look at dynamic finder methods
 
 #### ActiveRecord::Base.respond_to?
 
@@ -966,4 +966,53 @@ Calling a real method is faster than calling a Ghost Method, so Rails chooses to
 
  ## Ch9 Metaprogramming safely
  Metaprogramming gives you the power to write beautiful, concise code.
- Metaprogramming gives you the power to shoot yourself in the foot. 
+ Metaprogramming gives you the power to shoot yourself in the foot.
+
+ ### Testing Metaprogramming
+ You can create a before filter with a Class Macro
+ ```ruby
+ class GreetController < ActionController::Base
+  before_filter :check_password
+ ```
+
+ TODO look at controller filter definitions and specs
+
+ The Source Behind Controller Filters
+
+ #### 9.2 diffusing moneky patches
+ Define monkey patches in a module and incldue it so it's in the ancestors chain of the class that is opened.
+
+ ActiveRecord overwriting existing record programatically..  Before defining a Dynamic Method, it checks that no method by the same name already exists.
+
+ Rake avoids accidental moneky patches by adding a guard if the method is previously defined 
+ ```ruby
+class Module
+  def rake_extension(method)
+    if method_defined?(method)
+      $stderr.puts "WARNING: Possible conflict with Rake extension:\
+    #{self}##{method} already exists"
+    else
+      yield
+    end
+  end
+end
+
+# Usage to define pathmap on string
+
+class String
+  rake_extension("pathmap") do
+    def pathmap(spec=nil, &block)
+  # ...
+    end
+  end
+end
+ ```
+ If you don’t use `rake_extension` each and every time you want to define a new method on an Open Class you’ll bypass the safety check.
+
+ ### 9.3 Lessons learned
+ #### Test your metagprogramming code
+ No matter how “meta,” code is still code, and unit tests can go a long way in helping you write code that’s clean and error-free
+
+ Metaprogramming is “code that writes code,” so you should have to test it at two different levels: the code you write, the code that your code writes. (second implicitly tests first)
+
+ #### Metaprogramming is just programming
