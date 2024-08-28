@@ -915,7 +915,7 @@ Task.find_or_create_by_description('Water plants')
 
 Dynamic finders are class methods, so you have to look for the class’s `method_missing`, not the instances’ `method_missing`.
 
-TODO Look at dynamic finder methods
+see anotated_method_missing.rb:1859
 
 #### ActiveRecord::Base.respond_to?
 
