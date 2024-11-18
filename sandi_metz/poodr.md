@@ -74,3 +74,140 @@ data is packaged into variables and transformed through behavior
 #### 1.4.2 Object Oriented Languages
 Data and behavior combined into an Object
 objects invoke one another's behavior by sending messages
+
+## CH2 Designing classes with a single responsbility
+Foundation is message, most visible is class
+
+Must work now, be eassy to change forever
+
+### 2.1  what belongs in a class?
+
+#### 2.1.1 grouping methods into classes
+
+Classes define a virtual world that constrains imagination
+Impossible to make right decsion at outset, newver know less than you know now.
+Design is about preserving changeability
+
+#### 2.1.2
+
+define easy to change:
+- No unexpected side effects
+- Small changes in requirements > Small changes in code
+- code is reusable
+- changes are made by adding code that is easy to change
+
+This becomes TRUE
+*T*ransparent: Consequences of change are obvious in code that is changing, and distant code that relies on it.
+*R*easonable: Cost of a change is proportional to the benefits conveyed by the change
+*U*sable Existing code is reusable in new and unexpected contexts
+*E*xemplary. Code should encourage those who change it to perpetuate these qualities
+
+### 2.2 Creating SRP classes
+a class should do the smallest thing useful
+
+#### 2.2.1
+Nouns as objects in domain represent simpleist candidates for classes 
+
+Present an implementation of a `Gear` that calculates `gear_inches`(bike value)
+`def initialize(chainring, cog,rim,tire)`
+May be sufficient for simple app, has some obvious problems(why does a gear have a rim and a tire?)
+
+#### 2.2.2 Why SRP matters
+
+Reusable classes are pluggable units of known behavior that few entanglements.
+Multiple responsiblities engenders difficulty of reuse, as responsibilites become entangled within class.
+
+#### 2.2.3 Determining if class meets SRP
+
+Rephrase methods as questions i.e. 'Gear, what is your ratio'(reaonable). 'Gear, what is your tire'(unreasonable).
+
+Attempt to describe it in one sentence. If that sentence uses 'Or' it probably has 2, if it uses 'and' it has 2 and the probably aren't related.
+
+Cohesion: every thing a class does relates to its purpose
+
+#### 2.2.4 Determining when to make decisions
+
+When faced with an imperfect design that 'works' ask yourself 'what is the cost of doing nothing today'
+
+With non-exemplary code, there is a chance someone will reuse it's pattern while you wait for better information.
+
+### 2.3 Writing code that embraces change
+
+#### 2.3.1 depend on behavior, not data
+
+Alwats wrap ivars in accessor methods, this means the method is the only place that understands what the underlying behavior does
+
+Hide data structures
+
+`@data = [[1,3], [2,4], [3,5]]` (rim and tire sizes as 2d array)
+An implementation like this *knows* too much about the 2d array, it knows rims are at index 0 and tires are at index 1. When you have data in an array, soon you have behavior all over referencing the arrays structure.
+
+```ruby
+class RevealingReference
+  attr_reader :wheels
+  def initialize(data)
+    @wheels = wheelify_data(data)
+  end
+
+  def diameters
+    wheels.collect { |wheel| wheel.rim + (wheel.tire * 2)}
+  end
+
+  Wheel = struct.new(:rim, :tire)
+  def wheelify_data # All knowledge of data ctructure is consolidated here
+    data.collect{ |cell| Wheel.new(cell[0], cell[1])}
+  end
+end
+```
+
+If you need a messy structure, hide the mess from yourself.
+
+#### 2.3.2 use SRP
+
+Seperating interation from the action of each iteration is a common case of breaking down multiple responsibilities
+
+```ruby
+# previous diameters
+
+def diameters
+    wheels.collect { |wheel| diameter(wheel) }
+  end
+
+def diameter(wheel)
+  wheel.rim + (wheel.tire * 2)
+end
+```
+
+Similar issue in `gear_inches
+
+```ruby 
+def gear_inches
+  ratio * (rim +(tire * 2))
+end
+
+### BECOMES
+
+def gear_inches
+  ratio * diameter
+end
+
+def diameter
+  rim + (tire * 2)
+end
+```
+Once isolated it becomes clear diameter contains only things in wheel. This suggests it should be *in* wheel.
+
+Do these refactors even when you dont know ultimate design.
+
+Impact of single refactor is small, but cumulative effect is huge
+
+- Expose previously hidden qualities
+- Avoid need for comments
+- Encourage reuse
+- Are easy to move.
+
+You could add the `def` diameter` to the wheel struct if you didnt want to make a new wheel now.
+
+Hold off on making decisions until you have to. If wheel can be a struct in Gear, thats ok *until* it needs to be its own thing.
+
+## Chapter 3 Managing dependencies
