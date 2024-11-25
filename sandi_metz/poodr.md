@@ -211,3 +211,137 @@ You could add the `def` diameter` to the wheel struct if you didnt want to make 
 Hold off on making decisions until you have to. If wheel can be a struct in Gear, thats ok *until* it needs to be its own thing.
 
 ## Chapter 3 Managing dependencies
+
+### 3.11 Recognizing dependenices
+
+An obect has a dependency when it knows
+
+- The name of another class
+- The name of a message it expects to send to something other than self
+- The arguments an external message require
+- The order those arguments go in.
+
+### 3.13 Other dependencies
+
+Depending on an external object which in turn depends on *another* external object is an especially bad case because *any* change ot an inetrmediate object can cause the chain to break, Law of demeter, limit this chain to one external dependency.
+
+## 3.2 Writing loosely coupled code
+
+### 3.2.1 Inject dependencies
+
+WWhen we hard code a reference to another class, we are stating we are only willing to deal with that class , making the including class more concrete. Most of the time it is not the *class* that is important, but the method it responds to. 
+
+```ruby
+class Gear
+  attr_reader :chainring, :cog, :wheel
+  def initialize(chainring, cog, wheel)
+    @chainring = chainring
+    @cog = cog
+    @wheel = wheel
+  end
+
+  def gear_inches
+    ratio * wheel.diameter
+  end
+end
+
+puts Gear.new(52, 11, Wheel.new(26, 1.5)).gear_inches
+```
+still question of 'where do we put name dependency'
+
+### 3.22 Isolate Dependencies
+
+Sometimes we are constrained such that we cannot inject dependencies. In this case, isolate them
+
+```ruby
+class Gear
+  ... same code
+
+  def gear_inches
+    ratio * wheel.diameter
+  end
+
+  def wheel
+    @wheel ||= Wheel.new(rim, tire)
+  end
+end
+```
+
+This has a few benefits, first highlights/exposes Gear's Dependency on Wheel, second, reduces the number of places a change to wheel could affect Gear. If for example, Wheel adds a 3rd argument, It could be added *only* in `Gear#wheel`, vs everywhere a Wheel was instantiated.
+
+### 3.3 Isolate vulnerable external messages
+
+```ruby
+def gear_inches
+  ### scary math
+    foo = intermediate result * diameter
+  ### more math
+end
+def diameter
+  wheel.diameter
+end
+
+# OR 
+
+delegate :diameter, to: :wheel
+```
+
+gear_inches now no longer knows that Wheel responds to diameter. Instead, it sends the diameter method to self. If wheel changes the name or signature of its implementation of diameter, the changes on Gear are confined to the simple wrapping method.
+
+### 3.2.3 Remove argument order dependencies
+
+Use Kwargs. It's quite common to tinker with initialization arguments. If positional arguments are used, each change causes you to  change every place the class is initialized, and can lead you to be unwilling to make changes.
+
+How kwargs support Open/Closed Pricipal:
+Open for Extension: You can add new keyword arguments to a method without changing the method's existing interface. This allows you to extend the functionality of the method by accepting additional parameters.
+
+Closed for Modification: Existing code that calls the method does not need to be modified when new keyword arguments are added. The method can handle the new arguments internally, providing default values if necessary.
+
+#### Isolate multiparemeter Initialization
+
+Sometimes you dont controle signatures of methods. when you don't i.e. if using a gem or client external to your application, wrap the external class, i.e.
+
+```ruby
+module SomeFramework
+  class Gear
+    attr_reader :chainring, :wheel, :cog
+    def initialize
+      @chainring = chainring
+      @wheel = wheel
+      @cog = cog
+    end
+  end
+end
+
+module GearWrapper
+  def self.gear(chainring:, wheel:, cog:)
+    SomeFramework::Gear.new(chainring, cog, wheel)
+  end
+end
+```
+
+Type of factory
+
+### 3.3 managing dependency direction
+
+#### 3.3.2 Choosing Dependency direction
+
+- Some classes are more likely to have changes in requirements
+- Concrete Classes are more likely to change than abstract classes
+- Changing a class with many dependents reuslts in widespread change.
+
+Ruby classes and framework, less likely to change than your code
+
+When gear is changed from depending on a class called wheel to being injected with a class that responds to the method :diameter it became more abstract.
+This is a type of interface, in ruby, its really east to do this
+In say Java youd have to define an interface, define diameter as part of the interface, include hte interface in Whell, and tell gear the injected class is a kind of that interface.
+
+Abstractions represent common, stable qualities
+Abstractions are more stable than concretions, but also harder to grok.
+
+| Column 1 | Less Likely to change | More likely to change |
+|----------|----------|----------|
+| Many dependents | Abstractions gather here | Danger |
+| Few Dependents | safe |  safe, many changes, few consequences |
+
+Heuristic: Depend on things that change less often than you do.
