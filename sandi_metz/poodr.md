@@ -345,3 +345,156 @@ Abstractions are more stable than concretions, but also harder to grok.
 | Few Dependents | safe |  safe, many changes, few consequences |
 
 Heuristic: Depend on things that change less often than you do.
+
+
+## Chapter 4 Creating flexible interfaces
+
+## 4.1 understanding interfaces
+
+In an application where objects can send any message to any other message, the objects become like an interwoven matt, because objects reveal too much
+
+### 4.2 defining interfaces
+
+*Public interfaces*
+- Reveal primary responsibility
+- Are expected to be invoked by others
+- Do no change on whim
+- Are thoroughly documented in tests
+
+*Private Interfaces*
+- Handle implementation details
+- are unsafe for others to depend on
+- may not be references in tests
+
+### 4.3 Finding public interface
+
+Domain objects Present themselves as the first 'thing' to build. They are obvious, because they stand for big real world things.
+
+Sequence Diagrams are a low cost way to experiment with objects and messages.
+Sequence Diagrams explicitly specify messages that should pass between objects using their public interfaces.
+
+They invert design conversation to "what object should respond to what message".
+
+### 4.3.4 Ask for what instead of telling how
+
+An implementation of a Trip and Mechanic class where Trip tells Mechanic every step needed to prepare a bicycle is problematic. I.e. "clean bicycle, pump tires, lube chain, etc" Requires Trip to know what Mechanic does. If mechanic adds a new responsibility, Trip will have to be changed in it's algorithm of telling Mechanic *what* to do.
+
+Change it so Trip tells Mechanic `prepare_bicycle` and the mechanic `prepare_bicycle` method takes all the steps needed to prepare a bike.
+
+### 4.3.5 Seek context independence
+
+Things that a class knows about other objects make up its context. Trip expects to hold a mechanic object that response to `prepare_bicycle`
+
+Can't reuse trip without a mechanic-like object
+
+Dependency injection allows objects to collaborate with others without knowing who they are.
+
+At first it seems impossible, Trips need bikes prepared, so a trip needs to ask a mechanic to prepare bikes.
+
+```mermaid
+sequenceDiagram
+    participant Trip
+    participant Mechanic
+    Trip->>Mechanic: prepare_trip(self)
+    Mechanic->>Trip: bicycles
+    Trip-->>Mechanic: 
+    Mechanic->>Mechanic: prepare_bicycles
+    Mechanic-->>Trip: 
+```
+Here, Trip knows it want to be prepared, passes itself to mechanic, mechanic calls back to trip to get bicycles, and prepares them
+
+Here, trip doesnt know or care that is has a mechanic, it merely holds onto an instance which will recieve `prepare_trip` and trusts it to do its job.
+
+### 4.3.6 Trust other objects
+
+If objects were human ' I know what I want, and I trust you to do your part'
+
+### 4.3.7 using Messages to Discover Objects
+
+A customer, in order to choose a trip, would like to a see a list of trips of appropriate difficulty, wiith rental bikes available.
+
+It is perfectly reasonable `Customer` would sent `suitable_trips` it is not reasonable Trip would recieve it ... but what would.. a `TripFinder
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant TripFinder
+    participant Trip
+    participant Bicycle
+
+    Customer->>TripFinder: find_trips(difficulty, on date, need_bike)
+    TripFinder->>Trip: get_trips(on_date,difficulty)
+    Trip-->>TripFinder: list of trips
+    loop for each trip
+        TripFinder->>Bicycle: suitable_bicycle(on_date, route_type)
+        Bicycle-->>TripFinder: 
+    end
+    TripFinder->>Customer: 
+```
+
+Sequence Diagrams make convoluted discussions easy and low cost to change.
+
+### 4.4 Writing code that puts its best interface forward.
+
+It is your interfaces, more than anything, that define your application
+
+### 4.4.1 Create explicit interfaces
+
+goal: Write code that works today and can be easily reused.
+
+Methods in public interface should 
+- Be Explicitly identified
+- Be More about what than how
+- Prefer KWARGS.
+
+Do not test private methods, or segregate the tests.
+
+### 4.4.2 Honor Public Interfaces
+
+If your design forces you to reuse the private interface of anohter class, *first* rethink design.
+
+### 4.4.4 
+
+Construct Public interfaces with an eye toward minimizing context they require.
+
+This could be a new wrapper class, a new method on the oublic interface of a class, or a wrapping method to isolate the dependency in the calling class.
+
+### 4.5 Law of Demeter.
+
+Set of coding rules resulting in loosely coupled objects. (one dot rule)
+
+Below Trip#depart methods
+
+- customer.bicycle.wheel.tire
+- customer.bicycle.wheel.rotate
+- hash.keys.sort.join(',')
+
+Remember TRUE, transparent, reasonable, usable, exemplary
+
+Above code is not reasonable, if wheel changes, Trip may have to change.
+
+Changing rotate or tire may break something in trip, something far away breaks Trip, not Transparent.
+
+Trip Needs a customer with a bike with a wheel, lots of context, not reusable.
+
+1 is much less worse than 2, query message vs command, in your use case, may be chaper to reach through intermediate objects to grad an attribute. NEVER do this with behavior.
+
+3 is not problematic, it's all the same thing, an Enumerable of Strings.
+
+### 4.5.3 avoiding Demeter violations.
+
+Delegation lets an object intercept a message sent to self and send it elsewhere. 
+
+### 4.5.4 Listen to Demeter
+
+Message chains occur when design is influenced by objects you already know.
+
+Reaching across means "Theres some code I know I want and I know how to get it" Makes your code not only know what it wants, but how to navigate across a bunch of other classes to grab it, drastically increasing your classes knowledge of other objects and coupling it to the current object structure.
+
+Demeter violations are clues that there are objects whose public interface is lacking.
+
+### 4.6
+
+Obecjt oriented applications are defined the messages that pass between them using their public interfaces.
+
+## CH 5 Reducing cost with Duck Typing.
