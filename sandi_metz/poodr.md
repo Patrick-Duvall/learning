@@ -498,3 +498,95 @@ Demeter violations are clues that there are objects whose public interface is la
 Obecjt oriented applications are defined the messages that pass between them using their public interfaces.
 
 ## CH 5 Reducing cost with Duck Typing.
+
+### 5.1 understanding duck types
+
+Class is just one way for object to gain public interface
+
+### 5.1.1 overlooking duck type
+
+At a high level we go from a `Trip` class looking to be prepared. We start with a trip class with a case statement switching on `preparer`'s type. The problem with this implementation Is `Trip` needs to know what preparers are AND how they do it. IT has external dependecies on class names and method names of those classes.
+
+```ruby
+class Trip
+  attr_reader :bicycles, :customers, :vehicles
+
+  def prepare(preparers)
+    preparers.each do |preparer|
+      case preparer
+      when Mechanic
+        preparer.prepare_bicycles(bicycles)
+      when TripCoordinator
+        preparer.buy_food(customers)
+      when Driver
+        preparer.gas_up(vehicle)
+        preparer.fill_water_tank(vehicle)
+    end
+  end
+end
+```
+
+At a high level, Trip's prepare method wants to prepare a trip. The method Trip can send each preparer is `prepare_trip(self)` Objects that implement `prepare_trip` are `Preparers` and objects that interact with preparers need to trust them to implement the `prepare_trip` interface.
+
+NEW DESIGN
+
+```ruby
+class Trip
+  def prepare(preparers)
+    preparers.each{ |preparer| preparer.prepare_trip(self) }
+  end
+end
+
+class Mechanic
+  def prepare_trip(trip)
+    trip.bicycles.each { |bike| prepare_bicycle(bicycle)}
+  end
+end
+
+class TripCoordinator
+  def prepare_trip(trip)
+    buy_food(trip.customers)
+  end
+end
+
+# etc. for Driver
+```
+
+Initial example depended on concrete class, making it easy to understand, but dependency laden.
+
+Concrete code is easy to understand but costly to change. Abstract code is harder to understand but more flexible. Fundamental tension of OOP.
+
+Polymorphism: Ability of many different objects to respond to the same message. A single message thus has many forms.
+Duck typing is one way, inheritance and behavior sharing with modules are another.
+
+### 5.2 Writing code that relies on ducks
+
+### 5.2.1 recognizing hidden ducks
+
+- Case statements that switch on class
+- kind_of? and is_a? checks
+- responds_to?
+- observation `try` is often a hidden switch
+- `&.` is a hidden switch on nil
+
+These all indicate you are missing an object with an undiscovered public interface. I doesnt matter that the undiscovered interface is a duck, its the interface that matters, not the class of the object that implements it.
+
+See CH 9 for testing ducks.
+
+### 5.2.5 choose ducks wisely
+
+An example from Rails framework, with type swtiching on nil and array. These core language methods and classes are very stable and unlikely to change, so the check on type here is relatively safe.
+
+### 5.3 conquering fear of duck typing
+
+AFAICT static type checking is the exact opposite of duck typing
+
+Metaprogramming often requires ducktyping as there are many cases when you cannot know what a class will be at runtime.
+
+### 5.4 summary
+
+Messages are at the center of OO applications
+
+Duck types detach these public interfaces from classes. Duck typing reveals underlying abstractions that might be invisible 
+
+Thinking ahead to testing, doing something like writing an Rspec expectation 'is a preparer' asserting members of a duck type respond to a certain interface and including it in the spec files of classes that are also ducks.
