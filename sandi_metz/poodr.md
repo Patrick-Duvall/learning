@@ -590,3 +590,144 @@ Messages are at the center of OO applications
 Duck types detach these public interfaces from classes. Duck typing reveals underlying abstractions that might be invisible 
 
 Thinking ahead to testing, doing something like writing an Rspec expectation 'is a preparer' asserting members of a duck type respond to a certain interface and including it in the spec files of classes that are also ducks.
+
+## Chapter 6, Inheritance
+
+### 6.1 Classical inheritance
+
+Classical => based on classes, 
+Inheritance form of automatic message delegation up the class ancestor chain
+
+### 6.2 When to use inheritance
+
+When a pre-existing class contains most of the behavior you need, its tempting to add a a type swtich. Generally this is a bad idea(caveat *may* be expedient )
+
+This is the behavior inheritance solves: That of highly related types that share common behavior but differ on a dimension.
+
+Nil and String both subclass Object, nil implements `#nil?` as true, while object impements it as `false`. String delegates nil? up to object, while nil does not because the interface is defined.
+
+Subclasses are their superclass AND MORE.
+
+### 6.3 Misapplying inheritance.
+
+### 6.4 Finding the Abstraction.
+
+Subclasses are *specializations* of their superclasses. They should be everything they are PLUS MORE
+Inheritance should be used for generalization => specialization relationships.
+
+### 6.4.1 Creatign an abstract super class.
+
+Trying to get a class diagram where both RoadBike and MountainBike subclass Bike.
+
+Abstract: Disassociated from any specific instance.
+
+It might not be right to commit to inheritance with with  2 classes. Might be right to duplicate code. Depends on how much change you anticipate, and how soon you anticiapte a third use case.
+
+Easier to promote code to super class then demote.
+
+When deciding on Refactoring ask the question: What happens if Im wrong.
+
+Failure to promote is obvious, when another sublass needs the behavior, it will be seen. 
+*BUT* Failure to demote is worse, creates behavior that is not applicable to all subclasses and subclasses are no longer specializations of their more general superclass.
+
+### 6.4.4 Template method pattern.
+Defining a basic structure in the superclass and sending messages to acquire subclass specific contributions is known as template method pattern.
+
+The Initialize here is the template method, Bicycle relys on subclasses to provide reasonable defaults
+
+```ruby
+class Bicycle
+  attr_reader :size, :chain, :tire_size
+
+  def initialize(**opts)
+    @size = opts[:size]
+    @chain = opts [:chain] || default chain
+    @tire_size = opts[:tire_size] || default_tire_size
+  end
+
+  def default_chain ; '10-speed' ; end
+end
+
+class RoadBike < Bicycle
+  def default_tire_size ; '23' ; end
+end
+
+class MoutainBike < Bicycle
+  def default_tire_size ; '2.1' ; end
+end
+```
+
+### 6.4.5 Implementing every template method
+
+Above, Bicycle's `initialize` sends `default_tire_size` but does not implement it. Bicycle imposes a requirement on it's subclasses but does not make it explicit. MAke is explicit
+
+```ruby
+class Bicycle
+  def default_tire_size
+    raise NotImplementedError, "#{self.class} should have implemented"
+```
+
+### 6.5 Managing coupling between subclasses and super classes
+
+Having subclasses call super creates a dependency and requires subclasses to know the algorithm. IF the algorithm changes, subclasses may break.
+
+### Decoupling Subclasses useing Hook Methods
+
+```ruby
+class Bicycle
+  def initialize(**opts)
+    @size = opts[:size]
+    @chain = opts [:chain] || default chain
+    @tire_size = opts[:tire_size] || default_tire_size
+
+    post_initialize(opts)
+  end
+end
+
+class RoadBike
+  def post_intialize(opts)
+    @tape_color = opts[:tape_color] # road bike can provide specializationd and overrides
+  end
+end
+```
+
+Road bike no longer knows the algorithm and is more flexible in face of uncertain future.
+
+We can do the same thing with spares.
+
+THIS
+```ruby
+class Bicycle
+  def spares
+    {tire_size:, chain:}
+  end
+end
+
+class RoadBike
+  def spares
+    super.merge(tape_color:)
+  end
+end
+```
+
+BECOMES THIS
+```ruby
+class Bicycle
+  def spares
+    {tire_size:, chain:}.merge(local_spares)
+  end
+
+  def local_spares ; {} ; end # Hook for subclasses override
+end
+
+class RoadBike
+  def local_spares
+    {tape_color:}
+  end
+end
+```
+
+Upside of this coding pattern, making another type is blindingly easy, just supply the specializations.
+### 6.6 Summary
+
+ Inheritance solves the problem of related types that share a great deal of common behabior but differ alogn a dimension. Allows you to isolate shared code and implement common algorithms in an abstract class , while providing a sturcture that lets subclasses specialize. The best way to create an abstraction is by pushing code up from a concrete subclass.
