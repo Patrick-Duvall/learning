@@ -731,3 +731,9 @@ Upside of this coding pattern, making another type is blindingly easy, just supp
 ### 6.6 Summary
 
  Inheritance solves the problem of related types that share a great deal of common behabior but differ alogn a dimension. Allows you to isolate shared code and implement common algorithms in an abstract class , while providing a sturcture that lets subclasses specialize. The best way to create an abstraction is by pushing code up from a concrete subclass.
+
+## CH 7
+
+### 7.1
+How are modules like inheritance, how are they different
+7.2.1 duck type is interface , module is duck type with behavior
