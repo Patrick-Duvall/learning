@@ -1,12 +1,8 @@
-# SOLID
-
-### Single Responsibility Principle
-
-## Open Closed
+# Open Closed
 
 This is basically abstracting the thing that changes and giving it a shared public interface. The abstraction of the thing that changes can happen in a few ways(factory pattern, inheritance, dependency injection). When done correctly Adding new behavior is as simple as adding a new file/class that represents the changing abstraction.
 
-### What Design Problems Does It Solve?
+## What Design Problems Does It Solve?
 
 1. Reduces the risk of breaking existing functionality
 - If you modify a class directly, there’s a risk of introducing unintended side effects.
@@ -137,7 +133,7 @@ logger.extend(TimestampedLogger)
 logger.log("This is a log message.")
 ```
 
-### Using Dependency Injection
+## Using Dependency Injection
 
 Here we change the thing injected, which changes the output of the report class. If we want another type of report, we create another formatter and inject it into the report.
 
@@ -172,7 +168,7 @@ report = Report.new(XMLFormatter.new)
 puts report.generate({ name: 'John', age: 30 })
 ```
 
-### Real-World Open Source Examples
+## Real-World Open Source Examples
 
 1. RSpec Matchers lets users define custom matchers without modifying existing ones.
 1. Rails follows OCP by allowing developers to extend model behavior using callbacks (before_save, after_create) without modifying the core ActiveRecord class.
