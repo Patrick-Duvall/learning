@@ -734,6 +734,133 @@ Upside of this coding pattern, making another type is blindingly easy, just supp
 
 ## CH 7
 
-### 7.1
-How are modules like inheritance, how are they different
-7.2.1 duck type is interface , module is duck type with behavior
+Inheritance is bad at combining behavior of two existing subclasses
+
+### 7.1 Understanding Roles
+
+Sometimes you need to share behavior orthagonal to the role of a class (I.e. active record)
+
+### 7.1.1 Finding roles
+
+Modules allow objects of different classes to play a common role using shared code.
+
+when an object includes a module, the methods become included via automatic method delegation, This looks the same from the including class' standpoint: message received, not understood, routed, value returned
+
+Objects respond to messages
+
+-They implement
+- Objects above it in the heirarchy implement
+- Those implemented by included modules
+- Thoes implemented by modules included in parent classes
+
+### 7.1.2 organizing responsibilities
+
+Implementation where a schedule knows too much (what target object it recieves in order to schedule it )
+
+```mermaid
+sequenceDiagram
+    participant Instigating Object
+    participant Schedule
+
+    Instigating Object->>Schedule: schedulable?(target, starting, ending)[Target = Bicycle]
+    Schedule->>Schedule: lead_days => 1
+    Instigating Object->>Schedule: schedulable?(target, starting, ending)[Target = Mechanic]
+    Schedule->>Schedule: lead_days => 4
+    Instigating Object->>Schedule: schedulable?(target, starting, ending)[Target = Vehicle]
+    Schedule->>Schedule: lead_days => 3
+    Schedule->>Instigating Object: !scheduled?(target, starting, lead_days, ending)
+```
+Here, schedule checks class to know what value to use. Knowledge doesnt belong in schedule, belongs in class whose name Schedule is checking.
+
+### 7.1.3 
+
+the fact schedule checks many class names to deterimine what value to use for a variable suggests the varaible should be a message to those classes.
+
+Here Schedule does not care about Target's class, but just expects it to respond to message `lead_days`
+
+```mermaid
+sequenceDiagram
+    participant Instigating Object
+    participant Schedule
+    participant Target
+
+    Instigating Object->>Schedule: schedulable?(target, starting, ending)[Target = Bicycle]
+    Schedule->>Target: lead_days
+    Target-->>Schedule: 
+    Schedule->>Instigating Object: !scheduled?(target, starting, lead_days, ending)
+```
+
+StringUtils#empty(string) is silly: In OOP why woould an instigator ask StringUtils if a string is empty instead of just asking the string `string#empty`
+
+the above Is similar. The instigator wants to know if an object is scheduleable, but is asking the Schedule rather than the object.
+
+### 7.1.4 Writing the concrete code
+
+Start by picking a concrete class an implementing the `schedulable?` method, then refactor for *all* schedulables.
+
+```mermaid
+sequenceDiagram
+    participant Instigating Object
+    participant Bicycle
+    participant Schedule
+    
+
+    Instigating Object->>Bicycle: schedulable?(target, starting, ending)
+    Bicycle->>Bicycle: lead_days
+    Bicycle->>Schedule: !scheduled(self, starting - lead days, ending)
+    Schedule-->>Bicycle: 
+    Bicycle-->>Instigating Object: 
+```
+
+```ruby
+class Bicycle
+
+  def initialize(**opts)
+    @schedule = opts[:schedule] || Schedule.new # Inject schedule w/default
+  end
+
+  def schedulable?(starting, ending)
+    !scheduled(starting - lead_days, ending)
+  end
+
+  def scheduled?(starting, ending)
+    schedule.scheduled?(self, starting, ending)
+  end
+
+  def lead_days
+    2
+  end
+
+  #...
+```
+
+Objects using bicycle no longer need schedule
+
+### 7.1.5 Extract the abstraction
+
+Mechanic and vehicle both need this role.
+
+```ruby
+module Scedulable
+
+  def schedule
+    @schedule ||= Schedule.new
+  end
+
+  def schedulable?(starting, ending)
+    !scheduled(starting - lead_days, ending)
+  end
+
+  def scheduled?(starting, ending)
+    schedule.scheduled?(self, starting, ending)
+  end
+
+  # includers may override
+  def lead_days
+    0 
+  end
+end
+```
+
+Dependency on Schedule removed from Bicycle, isolated in Schedulable module. Similar to inheritance where parent classes must implement methods of their child classes, even if to say 'not implemented' or provide a default.
+
