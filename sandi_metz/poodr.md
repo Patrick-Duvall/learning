@@ -864,3 +864,74 @@ end
 
 Dependency on Schedule removed from Bicycle, isolated in Schedulable module. Similar to inheritance where parent classes must implement methods of their child classes, even if to say 'not implemented' or provide a default.
 
+NEW sequence
+
+```mermaid
+sequenceDiagram
+    participant Instigating Object
+    participant Schedulable
+    participant Schedule
+    
+
+    Instigating Object->>Schedulable: schedulable?(target, starting, ending)
+    Schedulable->>Schedulable: lead_days
+    Schedulable->>Schedule: !scheduled(self, starting - lead days, ending)
+    Schedule-->>Schedulable: 
+    Schedulable-->>Instigating Object: 
+```
+
+code in `Schedule` is the abstraction, uses the template method pattern to invite objects to provide specializtions(`lead_days`) to the algorithm.
+
+Similar to classical inheritence, both rely on automatic message delegation.
+
+### 7.1.6 Looking up methods
+
+Basic model of instances look to their class for methods, then to modules included in that class, then to the parent class then to modules in that class etc.
+
+Modules included in reverse order of module inclusion.
+
+Beware possibility of name collision.
+
+for a more detailed explanation see metaprogramming ruby 4.4 section on eigen classes, over and up model
+
+### 7.2 Writing inheritable code
+
+think about deeply nested inheritance structures bouncing up and down the tree :grimace:
+
+### 7.2.1 Recognize Antipatterns
+
+An object uses such as `type` to determine what message to send to self. Here put common code into adstract superclass and create subclasses for different types
+
+Sending object checks recieving objects class to know what method to send, missing duck type. Codify role as duck, and recievers implement duck type interface, then original object send one message to all recievers
+
+If duck types share behavior as well as interface, place the shared code in a module.
+
+### 7.2.2 Insist on the Abstraction
+
+All code of an abstract superclass apply to ALL subclasses. Module includers use ALL module code
+
+When subclasses raise 'does not implement' they are very close to saying ' i am not a specialization of my super class'
+
+### 7.2.3 Honor the contract
+
+Liskov
+
+Subclasses can be used anywhere a superclass would be, and objects that include modules can interchangeably play the modules role.
+
+### 7.2.4 Use Template Method Pattern
+
+Fundamental coding technique for inheritable code is template method pattern. Abstract code feines algorithms, and concrete inheritors of the abstraction provde specializations by overriding template methods.
+
+### 7.2.5 Preemptively Decouple classes.
+
+Avoid code that sends super, instead use hook methods. Inheritance creates dependencies, super adds additional dependency
+
+### 7.2.6 Create Shallow Heirarchies
+
+Beware Deep Narrow Heirarchies, as they become Deep + wide. Deep heirarchies have long lookup paths (many reasons to change) and people tend to become familiar with just top parent and leaf nodes.
+
+### 7.3 Summary
+
+When a class includes a module, the methods in the module get put in the same lookup path as methods acquired by inheritance. Because the mechanism is the same, the same techniques apply. Use Tempate Method pattern and invite includers to supply specialization
+
+Liskov subtypes substitutable for super types.
