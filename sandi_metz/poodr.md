@@ -935,3 +935,83 @@ Beware Deep Narrow Heirarchies, as they become Deep + wide. Deep heirarchies hav
 When a class includes a module, the methods in the module get put in the same lookup path as methods acquired by inheritance. Because the mechanism is the same, the same techniques apply. Use Tempate Method pattern and invite includers to supply specialization
 
 Liskov subtypes substitutable for super types.
+
+# Chapter 8, composition
+
+
+### 8.1 composing a bicycle of parts
+
+### 8.1.1
+
+Creating a Parts object to hold the responsiblity of parts 
+
+Most of the code in bicycle is related to Spares, move the code over as is into a parts Heirarchy
+
+```ruby
+class Parts
+  attr_reader :chain, :tire_size
+
+  def initialize(**opts)
+    @chain = opts[:chain] || default_chain
+    @tire_size = opts[:tire_size] || default_tire_size
+  end
+
+  def spares
+    { chain:, tire_size: }.merge(local_spares)
+  end
+
+  def default_tire_size; raise NotImplementedError; end
+  def post_initialize; {}; end
+  def default_chain; '11-speed'; end
+end
+
+class RoadBikeParts
+  attr_reader :tape_color
+
+  def post_initialize(**opts)
+    @tape_color = opts[:tape_color]
+  end
+
+  def local_spares; {tape_color:}; end
+  def default_tire_size; '23'; end
+end
+
+class RoadBikeParts
+  attr_reader :front_shock, :rear_shock
+
+  def post_initialize(**opts)
+    @front_shock = opts[:front_shock]
+    @rear_shock = opts[:rear_shock]
+  end
+
+  def local_spares; {front_shock:, rear_shock:}; end
+  def default_tire_size; '23'; end
+end
+```
+
+Bicycle is now composed of parts, wich is a inheritence heirarchy. Reveals how little bike code was in bike.
+
+### 8.2 composing Parts object
+
+`Parts` contains `Part`, create it now
+
+```mermaid
+sequenceDiagram
+    participant Bicycle
+    participant Parts
+    participant Part
+    
+
+    Bicycle->>Parts: spares
+    Parts->>Part: needs_spare?
+    Part-->>Parts: 
+    Parts-->>Bicycle: 
+```
+
+Parts now becomes a simple wrapper
+
+```ruby
+class Parts
+  attr_reader :parts
+end
+```
