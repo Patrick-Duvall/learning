@@ -1011,7 +1011,95 @@ sequenceDiagram
 Parts now becomes a simple wrapper
 
 ```ruby
+class Bicycle
+  attr_reader :size, :parts
+
+  def initialize(size:, parts:)
+    @parts = parts
+    @size = size
+  end
+
+  def spares
+    parts.spares
+  end
+end
+
 class Parts
   attr_reader :parts
+
+  def initialize(parts)
+    @parts = parts
+  end
+
+  def spares
+    @parts.select { |part| part.needs_spare}
+  end
+end
+
+class Part
+  # attrs/init for name, description, needs_spare
 end
 ```
+
+Old spares returns a hash, new spares returns array of part objects
+
+### 8.2.2 Making Parts more array like
+
+Its odd that spares and parts are different on bicycle, ones is array, one is parts object which does not respond to array methods
+
+A few fixes
+
+- Add only methods neededed to parts i.e. Parts#size = @parts.size
+Downside: You will start to think of it as array and need more methods
+- Subclass array
+Downside, Array methods return arrays, not your suclass
+
+- Extend enumerable and forwardable
+
+```ruby
+require 'forwardable'
+class Parts
+  extend Forwardable
+  def_delegators :@parts, :size, :each
+  include Enumerable
+
+  def initialize(parts)
+    @parts = parts
+  end
+
+  def spares; select { |part| part.needs_spare? }; end
+end
+```
+
+By including the Enumerable module, the Parts class must define an each method, which it does through delegation.
+The Enumerable module provides a variety of methods for working with collections, such as map, select, reject, find, reduce, etc.
+These methods rely on the each method to iterate over the collection.
+
+Becasue each is delegated to parts, Enumerable defined methods will operate on parts
+
+### 8.3 Manufacturing Parts
+
+Somewhere in the app, something needs to know what parts go in a mountain bike.
+
+Create configs
+
+```ruby
+road_cofig = 
+[['chain', '11-speed'],
+['tire_size', '23']
+['tape_color', 'red']]
+
+mountain_cofig = 
+[['chain', '11-speed'],
+['tire_size', '2.1']
+['front_shock', 'Manitou']
+['rear_shock', 'Manitou', false]]
+```
+
+This 2d array provides no structural information but we understand it, 3rd, optional column for need spare, otherwise use default value of true.
+
+Aside: This seems unnecessary, why not make it a hash so its more understandable at a glance as a single thing, without knowing how the factory works
+
+### 8.3.1 Creating Parts Factory
+
+Factory: An object that manufactures other objects
