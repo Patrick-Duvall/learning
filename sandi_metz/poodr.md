@@ -1103,3 +1103,184 @@ Aside: This seems unnecessary, why not make it a hash so its more understandable
 ### 8.3.1 Creating Parts Factory
 
 Factory: An object that manufactures other objects
+
+```ruby
+module PartsFactory
+  def self.build(congfig:, part_class: Part, parts_class: Parts)
+    parts_class.new(
+      config.collect do |part_config|
+        part_class.new(name: part_config[0], description: part_config[1], needs_spare: part_config.fetch(2,true))
+      end
+    )
+  end
+end
+```
+
+we now always need to use this factory to build. Factory understands terseness of config array.
+
+Because `Part` is almost only its initialize (outside of the needs spare), we can replace Part with an OpenStruct. We isolate the needs spare logic inside the factory
+
+```ruby
+module PartsFactory
+  def self.build(congfig:, parts_class: Parts)
+    parts_class.new(
+      config.collect do |part_config|
+        create_part(part_config)
+      end
+    )
+  end
+
+  def self.create_part(part_config)
+    OpenStruct.new(name: part_config[0], description: part_config[1], needs_spare: part_config.fetch(2,true))
+  end
+end
+```
+(open strct => hash initialization)
+
+### 8.4 Composed bicycle
+
+```ruby
+class Bicycle
+  attr_reader :size, :parts
+
+  def initialize(size:, parts:)
+    @parts = parts
+    @size = size
+  end
+
+  def spares
+    parts.spares
+  end
+end
+
+require 'forwardable'
+class Parts
+  extend Forwardable
+  def_delegators :@parts, :size, :each
+  include Enumerable
+
+  def initialize(parts)
+    @parts = parts
+  end
+
+  def spares; select { |part| part.needs_spare? }; end
+end
+
+module PartsFactory
+  def self.build(congfig:, parts_class: Parts)
+    parts_class.new(
+      config.collect do |part_config|
+        create_part(part_config)
+      end
+    )
+  end
+
+  def self.create_part(part_config)
+    OpenStruct.new(name: part_config[0], description: part_config[1], needs_spare: part_config.fetch(2,true))
+  end
+end
+
+road_cofig = 
+[['chain', '11-speed'],
+['tire_size', '23']
+['tape_color', 'red']]
+
+mountain_cofig = 
+[['chain', '11-speed'],
+['tire_size', '2.1']
+['front_shock', 'Manitou']
+['rear_shock', 'Manitou', false]]
+
+```
+
+Now that these classes exist, its very easy tocreate a new kind of bike
+
+```ruby
+recumbent_config =
+[['chain', '9-speed'],
+['tire_size', '28']
+['flag', 'tall and orange']]
+```
+
+Create a new bike by describing its parts
+
+Aggregation: Parts of composed object have independent life, I.e. a department has teachers but if department dissolved teachers still exist. 
+VS
+Strict composition: parts dont have independent life, I.e. a meal and its appetizer, If the meal is eaten, the appetizer is also gone.
+
+Little practical difference, use composition unless more specificity needed.
+
+### 8.5 Choosing Inheritence or Composition IMPORTANT
+
+Inheritence : For the cost of arranging objects in a heirarchy, you get delegation for free
+
+Composition: For the cost of explicit message delegation, you get objects with structural independence
+
+### 8.5.1 Accepting Costs of Inheritance
+
+Code should be transparent, reasonable, usable, exemplary
+
+When it works well
+reasonable: Methods at top of heirarchy have widespread influence, position at top of heirarchy is a lever, allowing wide changes minimal code
+
+usable: follows open-closed, adding new subclasses to create new varaints
+
+exemplary: heirarchy embodies abstraction, new subclasses plug in concrete differences, easy to follow
+i.e. Numeric(superclass), Int and Float
+
+Costs:
+
+When you model the wrong heirarchy, or others(including future self) want the behavior created but cant accpet the demands of inheritance
+
+Inverse of reasonable: Cost of making chnge at top of incorrect heirarchy
+
+Flipside usable: Inability to add behavior when sublcasses are a mix of types
+
+Flipside exemplary: novices extending incorrectly modeled heirarchies. They need to be refactored, but the person using them lacks the skill to do so.
+
+Inheritence: deep set of dependencies, Strength and weekness. Subclasses are bound to to classes above them.
+
+Do not make external users subclass your code.
+
+### 8.5.2 Accepting Costs of Compositon
+
+composed objects do not depend on structure of class heirarchy and delegate thier own messages
+
+transparency: small objects follow SRP and are easy to change/test. No heirarchy => no inheritance => less affected by others changing
+
+reasonable: composed objects deal with other objects by interface, adding a new variant => add a new object that honors interface
+
+usable: small, structurally independent with well defined interfaces
+
+High tolerance of change.
+
+Costs:
+
+flipside transparent: While each piece is easily understandable, the whole may not be
+
+cost of structural independence: automatic message delegation composed object must know what to delegate to who. Identical delegation may be needed by many objects.
+
+Excellent at objects made of parts, less so arranging code for collection of near identical parts
+
+### 8.5.3 Choosing relationships
+
+Use Inheritence for `Is a` relationships
+- small sets of realworld objects that fall naturally into static heirarchies
+
+Use Duck types for `Behaves Like` relationships
+
+- objects that play a role, prepareable, schedulable, etc. Roles are not main responsibility
+- recognize role, define interface for every possible player
+- if just interface, duck type, if behavior, module
+
+Use composition for `Has a` relationships
+
+- bicycle is more than sum of parts, has parts
+
+### 8.6 Summary
+
+Composition lets you combine small parts, individually easy to test, can lose forest for trees
+
+Inheritance, Composition, modules are competing ways of organizing code
+
+Tools, practice each of them.
