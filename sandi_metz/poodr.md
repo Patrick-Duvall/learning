@@ -1284,3 +1284,66 @@ Composition lets you combine small parts, individually easy to test, can lose fo
 Inheritance, Composition, modules are competing ways of organizing code
 
 Tools, practice each of them.
+
+### Chapter 9 Testing
+
+Changible code - 3 legged stool
+
+- Writing Object Oriented Code
+- being good at refactoring (small deliberate steps)
+  Defer decisions until necessary
+- Having the right tests
+
+### 9.1 Intentional testing
+
+True purpose of testing: Reduce costs
+Tests are painful? Dont stop .. write better tests
+
+Finding Bugs: Unit tests, fixing bugs early always lowers cost
+
+Supplying Documentation: Provide truest description of your code works
+
+Deferring Design Decisions: Allow Concrete 'hacks' to support certain use cases behind presentable public interfaces for classes. An abstraction may be forthcoming, but as of now you lack info to make it correctly
+
+Supporting Abstractions: Good design progresses towards small comunicating objects. Downside of these is you can lose how the whole functions. There is a level of abstraction where code is almost impossible to change without good tests.
+
+Exposing Design Flaws: If the tests require too much setup.. the objects have too much context.
+
+### 9.1.2 knowing what to test
+
+See sandi_metz/magic_tricks_of_testing_metz.md For a better explanation of this section.
+
+| Message | Query | Command |
+| -------- | -------- | -------- |
+| Incoming   | Assert Result   | Assert Direct public side effect   |
+| Sent to self  | Ignore   | Ignore |
+| Outgoing   | Ignore   | Expect to send verified double   |
+
+### 9.1.3 Knowing when to test
+
+Writing tests requires a modicum of reusability because tests are reuse.
+
+Dont use inflated self view as an excuse to skip tests.
+
+### Knowing How to test
+
+TDD and BDD are best seen as a continuum wheere values and experience dictate where you stand.
+
+Strong personal preference BDD .. Write the request spec, get it to the right response, see how the objects communicate
+- May be governed by the fact the code base has a lot of accidental complexity
+
+Test only the object under test, sight tests along the boundaries of its messages.
+If you put tests *inside* the object(testing private methods) it allows knowledge that should be internal to the object to leak into the test.
+
+### 9.2 Testing incoming messages.
+
+### 9.2.1  Delete unused interfaces
+
+The one caveat to testing every incoming message, is if there no dependents, dont test the method. Delete it. It is a speculative method. Easier to retrieve code then live with unused code.
+
+### 9.2.2 Proving Public interface.
+
+Incoming messages are tested by asserting about the value or state the message returns
+
+
+Aside: See patrick_duvall/musings/factories_and_objects_under_test.md

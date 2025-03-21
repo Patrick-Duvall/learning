@@ -21,7 +21,8 @@ caveat private algorithm early on
 Do not let private tests keep people from improving your code
 
 ## Outgoing Query Methods
-Do not assert result of outtgoing query. Trust the object that implements the query. Receiver of incoming query is solely responsible for assertions around state
+
+Do not assert result of outgoing query. Trust the object that implements the query. Receiver of incoming query is solely responsible for assertions around state
 Doing this is redundant and means you can't change implementation of this class without breaking tests.
 
 Do not expect to send outgoing query, binds you to an implementation, makes it impossible to change code without breaking test
