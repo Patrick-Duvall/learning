@@ -1345,5 +1345,119 @@ The one caveat to testing every incoming message, is if there no dependents, don
 
 Incoming messages are tested by asserting about the value or state the message returns
 
+Very straightforward when does not collaborate with ohter objects
+
+```ruby
+class Gear
+  def gear_inches
+    ratio * Wheel.new(rim, tire).diameter
+  end
+end
+def test_calculates_gear_inches
+  gear = Gear.new(chainring: 52, cog: 11, tim: 26, tire: 1.5)
+
+  assert_in_delta(131.7, gear.gear_inches, 0.01)
+end
+```
+Gear and wheel tighly coupled, testing gear effectively tests wheel
 
 Aside: See patrick_duvall/musings/factories_and_objects_under_test.md
+
+### 9.2.3 Isolating object under test
+
+Cant test gear in isolation (test is first reuse of code)
+
+resolution(From CH3): Inject Diameterizable into Gear. Temping to inject wheel if wheel is only player of role Diameterizable
+
+i.e. 
+
+```ruby
+class Gear
+  def initialize(chainring:, cog:, wheel:)
+    @chainring = chainring
+    @cog = cog
+    @wheel = wheel
+  end
+
+  def gear_inches
+    ratio * wheel.diameter
+  end
+end
+
+def test_calculates_gear_inches
+  gear = Gear.new(chainring: 52, cog: 11, wheel: Wheel.new(26, 1.5))
+
+  assert_in_delta(131.7, gear.gear_inches, 0.01)
+end
+```
+
+Nothing explicitly calls Wheel as playing role of Diameterizable
+
+### 9.2.4 Injecting Dependencies using classes
+
+Imagine someone renames wheel#diameter => wheel#width
+
+Gear spec fails (no surprise). This should happen with 2 concrete collaborators
+
+What if dozens of players of Diameterizable? What if Diameterizables are costly to make?
+
+Common sense: If wheel is only diameterizable and fast enough, do above.
+
+### 9.2.5 Injecting dependencies as role.
+
+Diameterizable is abstraction of idea disparate objects have diameters.
+
+Point of dependency injection: substitute concrete classes without changing code (Open Closed)
+
+When role has single player, that one concrete player and abstract role have blurred line
+
+Creating test doubles: Instance of role player used only for testing
+
+```ruby
+class DiameterDouble
+  def diameter = 10
+end
+```
+Stubs Diameter so gear test can pass. Fast and Isolated
+
+Problem!!! Change wheel#diameter => wheel#width again: tests fail
+
+DiameterDouble is a second player of the Diameterizable role. Almost invisible
+Aside: use verified_doubles in rsepc to avoid this drift
+
+Half solution. Not sharable with other Diametrizables And wheels assertion does not prevent DiameterDouble's drift.
+```ruby
+class WheelTest
+  def test_implements_diameterizable_interface
+    assert_respond_to(@wheel, :diameter)
+  end
+end
+```
+
+### 9.3 Testing Private methods
+
+Ideally dont. Private methods are hidden inside object under test and should not be seen by others. Private methods should be invoked by public methods, and these methods should be tested.
+
+Private methods are unstable ans should be able to change without breaking tests if object public methods dont change.
+Testing is documentation and encourages others to break encapsulation  and depend on these methods
+
+### 9.3.2 Remove private methods entirely
+
+This option sidesteps the problem
+
+### 9.3.3 choosing to test a private method
+
+When a concrete hack is in place as a means to refactorign it out later
+When legacy code has complicated private internals and you want to change them.
+
+Aside: Occasionally I will write private method tests with comments about being able to remove them if they become cumbersome.
+
+### 9.4 Testing Outgoing messages
+
+### 9.4.1 Ignoring Query Messages
+
+One classes outgoing query message is anothers incoming query message. Write expectations for the class where the query is incoming.
+
+### 9.4.2 Proving Command Messages
+
+Sometimes it *does* matter a message gets sent(something happens as a result). In this case, the object under test needs to test the message is sent.
