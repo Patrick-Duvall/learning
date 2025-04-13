@@ -55,6 +55,8 @@ Task: Implement Random Echo
 | House   | Data   | default # This order algorithim   |
 | RandomHouse   | Data   | shuffle   |
 
+Base class part of algorithm is just as valid as subclass parts of algorithm. Order and Format are roles.
+
 ``` ruby
 # DATA = lines of 'House that Jack Built'
 
