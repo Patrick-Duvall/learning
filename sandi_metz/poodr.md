@@ -1461,3 +1461,142 @@ One classes outgoing query message is anothers incoming query message. Write exp
 ### 9.4.2 Proving Command Messages
 
 Sometimes it *does* matter a message gets sent(something happens as a result). In this case, the object under test needs to test the message is sent.
+
+Lets say we have a model that makes a call to an service object, in the model test, write the expectation that the service object recieved the call with the correct arguments. DO NOT test the result of the service object call in the model test. (I.e. Invoice enqueueing mail)
+
+### 9.5 Testing Duck types
+
+Revisting preparers
+
+```ruby
+class Trip
+  def prepare(preparers)
+    preparers.each{ |preparer| preparer.prepare_trip(self) }
+  end
+end
+
+class Mechanic
+  def prepare_trip(trip)
+    trip.bicycles.each { |bike| prepare_bicycle(bicycle)}
+  end
+end
+
+class TripCoordinator
+  def prepare_trip(trip)
+    buy_food(trip.customers)
+  end
+end
+
+# etc. for Driver
+```
+
+We can then write a test that each player of the role preparer responds to its correct interface
+
+```ruby
+module PreparerInterfaceTest
+  def test_implements_the_preparer_interface
+    assert_responsd_to(@object, :prepare_trip)
+  end
+end
+
+class MechanicTest
+  include PreparerInterfaceTest # include in every instance of a preparer
+
+  def setup ; @object = @mechanic = Mechanic.new ; end
+end
+```
+
+Additionally, write a test for the Trip that it sends the correct outgoing message to its preparers.
+
+Here, we can include the test interface test inside the double so that we do not end up in the "Living the Dream" Problem where mocks respond to objects that the implementation code does not. (In Rspec, verified doubles ensure mocks respond to the same methods as the objects they are mocking.)
+
+This code is my attempt at a syntesis of the two versions of code in the chapter. The book uses a `Minitest::Mock` which did not seem to be able to verify the mock responds to the same 
+
+```ruby
+class PreparerDouble
+  attr_reader :recieved_trip
+
+  def prepare_trip(trip) ; end
+end
+
+class PreparerDoubleTest
+  include PreparerInterfaceTest
+
+  @object = PreparerDouble.new
+end
+
+class TripTest
+  def requests_trip_preparation
+    preparer = PreparerDouble.new
+    trip = Trip.new([], [], []) #bikes, customers, vehicles
+
+    trip.prepare([preparer])
+
+     assert_equal trip, preparer.received_trip, "Expected preparer to receive the trip object"
+  end
+end
+```
+
+In Rspec, I would probably jsut pass in a verified double of a preparer to trip. It feels a little Java like in that we have a module functioning as an interface.
+
+Here is another implementation that creates a module to define the role. Im not sure it's better. I like the explicitness of a module defining the role
+
+```ruby
+module Preparer
+  def prepare_trip(trip)
+    raise NotImplementedError, "#{self.class} must implement #prepare_trip"
+  end
+end
+
+class Mechanic
+  include Preparer
+
+  def prepare_trip(trip)
+    trip.bicycles.each { |bike| prepare_bicycle(bike) }
+  end
+
+  def prepare_bicycle(bike)
+    # Mechanic-specific logic
+  end
+end
+
+class Trip
+  def initialize(bicycles, customers, vehicles)
+    @bicycles = bicycles
+    @customers = customers
+    @vehicles = vehicles
+  end
+
+  def prepare(preparers)
+    preparers.each { |preparer| preparer.prepare_trip(self) }
+  end
+end
+```
+
+Tests
+
+```ruby
+RSpec.shared_examples "a preparer" do
+  it "responds to #prepare_trip" do
+    expect(subject).to respond_to(:prepare_trip)
+  end
+end
+
+RSpec.describe Mechanic do
+  it_behaves_like "a preparer"
+end
+
+RSpec.describe Trip do
+  it "sends #prepare_trip to each preparer" do
+    preparer = instance_double("Preparer")
+    allow(preparer).to receive(:prepare_trip)
+
+    trip = Trip.new([], [], [])
+    trip.prepare([preparer])
+
+    expect(preparer).to have_received(:prepare_trip).with(trip)
+  end
+end
+```
+
+The shared example ensures that any object playing the preparer role responds to the `prepare_trip` method, while the `instance_double` ensures that the double adheres to the Preparer interface (if interface changes, test will fail.)
