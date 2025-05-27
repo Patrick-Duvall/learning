@@ -6,7 +6,8 @@ Given an array of integers nums and an integer target, return indices of the two
 
 You may assume that each input would have exactly one solution, and you may not use the same element twice.
 
-Hash map solution.
+## Ideal solution
+
 O(n) time, Iteraates over array 1x. Hash lookups are constant time.
 O(n) space. Hash grows linearly as number of elements increases
 
@@ -22,15 +23,18 @@ def two_sum(nums, sum)
 end
 ```
 
-Initial solution
+## Initial solution
 
 O(1) space, just some simple variable assignment
 O(n^2) Time, as we iterate over nums, calling `nums.find_index(addend_2)` which is a linear search.
 
 ```ruby
+def two_sum(nums, sum)
+  lookup = {}
   nums.each_with_index do |addend_1, index|
     addend_2 = sum - addend_1
     index2 = nums.find_index(addend_2)
     return [index2, index] unless index2==index
   end
+end
 ```
