@@ -1600,3 +1600,140 @@ end
 ```
 
 The shared example ensures that any object playing the preparer role responds to the `prepare_trip` method, while the `instance_double` ensures that the double adheres to the Preparer interface (if interface changes, test will fail.)
+
+### 9.6 Testing inherited code
+Refer to CH6 bicycle using inheritence
+
+First goal is to ensure all objects honor Liskov Heirarchy. Easy way is to write shared test for common contract and include in every object
+
+```ruby
+Module BicycleInterfaceTest
+  def test_responds_to_default_tire_size
+    assert_respond_to(@object, :default_tire_size)
+  end
+
+  def test_responds_to_default_chain
+    assert_respond_to(@object, :default_chain)
+  end
+
+  # Rest of class contract assertions
+end
+```
+Any object that passes this test can be trusted to act like a `Bicycle`
+
+Usage
+```ruby
+class RoadBikeTest < Minitest::Test
+  include BicycleInterfaceTest
+  def setup; @bike = @object = RoadBike.new; end
+end
+```
+
+#### 9.6.2 Specifying subclass responsiblities
+
+Abstract Bicycle superclass also imposes requirements on subclasses.
+
+```ruby
+Module BicycleSubclassTest
+  def test_responds_to_post_initialize
+    assert_respond_to(@object, :post_initialize)
+  end
+
+  # also local spares and default_tire_size
+end
+```
+
+This test codifies requirements for subclasses of Bicycle. subclasses can still inherit these methods, this test makes sure sublasses do not make these messages fail. Subclass MUST implement `default_tire_size` because abstract superclass raises an error.
+
+Every Bicycle subclass can include these 2 modules
+```ruby
+class MountainBikeTest < Minitest::Test
+    include BicycleInterfaceTest
+    include BicycleSubclassTest
+  def setup; @bike = @object = MountainBike.new; end
+end
+```
+
+#### Confirming SUperclass enforcement
+
+Bicycle raises error if subclass does not implement `default_tire_size`. Implementation is in subclass, but enforcement in `Bicycle`, ergo test in Bicycle.
+
+```ruby
+class BicycleTest < Minitest::Test
+  def setup; @bike = @object = Bicycle.new(tire_size: 0); end
+
+  def test_forces_subclasses_to_implement_default_tire_size
+    assert_raises(NotImplementedError(@bike.default_tire_size))
+  end
+end
+```
+
+Aside: I would probably do somehting like below in Bicycle Initialization to avoid instantiating the abstraction
+```ruby
+raise NotImplementedError, "Bicycle is an abstract class and cannot be instantiated directly" if self.class == Bicycle
+```
+
+### 9.6.3 Testing Unique behavior
+
+Now that common behavior is tested, 2 gaps remain: specializations, both from subclasses and superclass.
+
+Shared modules test *most* RoadBike behavior. Only thing left here to test is RoadBike Specialiazation.
+
+```ruby
+class RoadBikeTest < Minitest::Test
+  include BicycleInterfaceTest
+  include BicycleSubclassTest
+  def setup; @bike = @object = RoadBike.new(taape_color: red); end
+
+  def test_puts_tape_color_in_local_spares
+    assert_equal 'red', @bike.local_spares[:tape_color]
+  end
+end
+```
+
+#### Testing Abstract Superclass Behavior
+
+Bicycles are not meant to be created, testing it can be hard.
+
+Because Bicycle used template methods for concrete specializations we can manufacture a test double for Bicycle
+
+Can be convenient to still be able to create abstract Bicycle(As I read this, perhaps my above Aside was too strict, rely on tests to enforce behavior vs code. Still on the fence)
+
+```ruby
+class BikeDouble < Bicycle
+  def default_tire_size = 0
+  def local_spares = { saddle: 'painful' }
+end
+
+class BicycleTest < Minitest::Test
+  def setup
+    @bike = @object = Bicycle.new(tire_size: 0)
+    @double = BikeDouble.new
+  end
+
+  def test_forces_subclasses_to_implement_default_tire_size # Helpful use of instantiating abstract class
+    assert_raises(NotImplementedError(@bike.default_tire_size))
+  end
+
+  def test_include_local_sparess_in_spares
+    assert_equal @double.spares, { tire_size: 0, chain: '11-speed', saddle: 'painful' }
+  end
+end
+```
+
+Can create a subclass for stubs as long as it doesnt violate Liskov
+
+To prevent Bike double method drift you can write a `BikeDouble` test and include the `BicycleSubclassTest`
+
+```ruby
+class BikeDoubleTest < Minitest::Test
+  include BicycleSubclassTest
+  def setup; @object = BikeDouble.new; end
+end
+```
+
+To test inehritence Heirarchies
+- Write one shareable test for overall interface
+- Write one shareable test for subclass responsibilities
+- Write subclass specialization specs
+- Write Specialization specs for superclass
