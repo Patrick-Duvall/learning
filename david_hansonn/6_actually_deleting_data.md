@@ -110,5 +110,125 @@ class Bucket::Incineratalbe::Incineration
   def possible?
     incineratable_via_self? || incineratable_via_account?
   end
+
+  private
+
+  def incineratable_via_self?
+    @bucket.deleted && due? ?? !incineratable_via_account?
+  end
+
+  def incinerate_recordings
+    @bucket.recordings.roots.each do |recording|
+      Recording::Incineratable::Incineration.new(recording).run
+    end
+  end
 end
 ```
+
+Because Diffferent objects implement incineratable, you can delete a single recording, all the recordings in a bucket, or all the buckets with an account.
+Recordings are messages, to dos, etc
+
+Small optimize: order methods in order of use by main public method.
+
+
+```ruby
+class Recording::Incineratable::Incineration
+  def initialize(recording)
+    @recording = recording
+  end
+
+  def run
+    if possible?
+      incinerate_children(@recording)
+      incinerate_dependents(@recording)
+    end
+  end
+
+  def possible?
+    incineratable_via_self? || incineratable_via_account?
+  end
+
+  private
+
+  def has_incineratable_ancestor?
+    @recording.ancestors.detect { |a| Recording::Incineratable::Incineration.new(a).possible? } 
+  end
+
+  def incinerate_children(recording)
+    @recording.descendants.each do |child|
+      incinerate_dependents(child)
+    end
+  end
+
+  def incinerate_dependents(recording)
+    Bucket.no_touching do
+      Recording.no_touching do
+        incinerate_recordables(recording) # Question why not just make this an attr accessor and not pass? Guess: Ordering on destroy?
+
+        incinerate_recording(recording)
+      end
+    end
+  end
+  # ...
+end
+```
+
+When deleting whole tree, don't want children out of order, have consideration of incineratable ancestors
+AR default is deleting a child touches the parent, but we dont want parents considered touched because eash touch is update SQL query
+
+Recordable is where actual data lies
+
+```ruby
+class Recordable::Incineration
+  def initialize(recording, recordable)
+    @recording = recording
+    @recordable = recordable
+  end
+
+  def run
+    @recordable.destroy if possible?
+  end
+
+  def possible?
+    !referenced_currently_by_other_recordings && !referenced_currently_by_other_events?
+  end
+
+  #...
+end
+```
+
+Can invoke this style from anywhere in heirarchy
+
+Bucket delete has 2 steps: trashed (soft delete, in trashcan), and incinerated: GONE
+
+```ruby
+module Bucket::Incineratable
+
+  DELETABLE_AFTER = 25.days
+  INCINERATABLE_AFTER = 5.days # 5 day buffer before gone forever
+
+  included do
+    after_update_commit :change_trashed_to_deleted_later, if: :changed_to_trashed?
+    after_update_commit :incinerate_later, if: :changed_to_deleted?
+  end
+
+  def delete
+    Deletion.new(self).run
+  end
+
+  def incinerate
+    Incineration.new(self).run
+  end
+
+  private
+  def chage_trashed_to_deleted_later
+    Bucket::ChangeTrashedToDeletedJob.schedule(self)
+  end
+
+  def incinerate_later
+    Bucket::IncinerateJob.schedule(self)
+  end
+end
+```
+
+In single DB cant really recover data, try to follow principle of truly deleting while not being onerous. DB backups wiped every 30 days
