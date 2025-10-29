@@ -63,6 +63,7 @@ use ONLY as smoke path
 Yanking recommendation in rails 8.1. to have controller tests.
 
 ### Local CI
+
 10 min to run tests on small app
 complexity is a bridge
 
@@ -81,3 +82,5 @@ Bootstrap budget
 People who are really serious about software should make their own OS
 
 ## Omarchy
+
+Checkout `Lazy Git`
