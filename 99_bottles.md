@@ -10,7 +10,7 @@ good code: highest value for lowest cost
 metrics
 loc
 cyclomatic complexity -> how many branches
-ABC -> assignment, brances, and conditionals
+ABC -> assignment, branches, and conditionals
   Flog
 
 
@@ -38,7 +38,7 @@ We may be temped to jumping to the abstraction that solves multiple cases, and t
 
 2.4 tolerating duplication
 
-DRY is important, but if applied too early or with too much vigor, it  does nore harm than good
+DRY is important, but if applied too early or with too much vigor, it  does more harm than good
 
 - Does the change make the code harder to understand?
 - What is the future cost of doing nothing now?
@@ -60,7 +60,7 @@ Duplication is not helpful when it repeats known independent examples
 
 2.7 choosing names
 
-choose pulic interface of classes in a way that makes sense to sendesrs of messages and reduces knowledge required of sending classes
+choose public interface of classes in a way that makes sense to senders of messages and reduces knowledge required of sending classes
 
 2.8 Revealing Intentions
 The distinction between intention and implementation allows you to understand a computation first in essence and later in detail if needed
@@ -69,7 +69,7 @@ The distinction between intention and implementation allows you to understand a 
 
 When tests are tied too closely to code, every change in code engenders a change in test
 
-2.10 avoiding echo chanmber
+2.10 avoiding echo chamber
 
 bottles = Bottles.new
 3 assert_equal bottles.verses(99, 0), bottles.song
@@ -80,12 +80,12 @@ Best test is test WHOLE SONG as expectation
 
 2.11 Considering Options
 - Tie to bottles : Bad, can provide right output but test breaks if still working
-- Tie to dynamicly genreated string ... duplicate verses logic
-- Duplicate whoele string BEST hard to convince self
+- Tie to dynamically generated string ... duplicate verses logic
+- Duplicate whole string BEST hard to convince self
 
 2.12 Summary
 
-Code can be most cost effective if it is not clever or extensible but is easy to understand, cheap to write, and requirements dont change.
+Code can be most cost effective if it is not clever or extensible but is easy to understand, cheap to write, and requirements don't change.
 
 ## 3 Unearthing concepts
 
@@ -133,7 +133,7 @@ end
 Only 6 => 1 6 pack, not 12 => 2 6 packs, clarify requirements, write necessary minimum
 Request for change is license to improve old code
 
-If we wanted to follow above would need to add case stateent for 6.. conditionals breed conditionals
+If we wanted to follow above would need to add case statement for 6.. conditionals breed conditionals
 
 ### 3.2 open closed
 
@@ -179,9 +179,9 @@ Rather than worry about 'what smell', list the things you dislike
 
 ### 3.4 Identify point of attack
 
-Current verse method contains a case statement with duplicated code.(duplication is easy low hanging fruit): Refactor verse to remove duplicaiton
+Current verse method contains a case statement with duplicated code.(duplication is easy low hanging fruit): Refactor verse to remove duplication
 
-there is no direct connection between removing the duplication, and succeeding in making the code open to the six-pack requirement, BUT using htis approach, dont need to know whole solution to advance
+there is no direct connection between removing the duplication, and succeeding in making the code open to the six-pack requirement, BUT using this approach, don't need to know whole solution to advance
 
 ### 3.5 Refactoring Systematically
 
@@ -217,3 +217,118 @@ Small changes => precise error messages
 Change one line at a time, run tests after every change, if they break, make a better change (is this realistic?)
 
 ### 3.7 Converging on Abstractions
+
+Encapsulate the concept that varies
+
+If two concrete examples represent the same abstraction and they contain a difference, that difference must represent a smaller abstraction within the larger one. If you can name the difference, you’ve identified that smaller abstraction.
+
+Often people understand the abstraction then solve it, this book focusses on taking small, iterative steps to discover it
+
+in our verses , verse `else` and 2 are most similar, differing only in `bottle vs bottles(can reuse `number, number -1`)
+
+```ruby
+when 2
+ "2 bottles of beer on the wall, " +
+ "2 bottles of beer.\n" +
+ "Take one down and pass it around, " + "1 bottle of beer on the wall.\n"
+else
+ "#{number} bottles of beer on the wall, " + "#{number} bottles of beer.\n" +
+ "Take one down and pass it around, " + "#{number-1} bottles of beer on the wall.\n"
+```
+
+#### 3.7.2 simplifying hard problems
+
+Make the 2 most alike identical, do so in a horizontal path i.e. ONLY making this change. It can be easy to get distracted by other possible refactorings.
+
+Solving easy problems makes hard problems easier
+
+What is underlying abstraction bottles vs bottle?
+
+To make these two lines the same, you must name this concept, create a method named after the concept, and replace the two differences with a common message send.
+
+General rule: name of at thing should be one level higher abstraction than thing itself
+
+
+| Number | xxx?      |
+|--------|-----------|
+| 1      | bottle    |
+| 6      | six-pack  |
+| n      | bottles   |
+
+concept => Container(unit too many levels above)
+
+Having named concept, implement code
+
+probably what we Need:
+
+```ruby
+def container(number)
+  if number == 1
+    "bottle"
+  else
+    "bottles"
+  end
+end
+
+"#{number-1} #{container(number-1)} of beer on the wall.\n"
+```
+
+Changes 7 lines of code, for this problem, we could hold it all in our head, but real world problems are big, how often change code, many things break?
+
+Make tiny changes, run tests after each
+
+Because no change breaks the tests, the code can be deployed to production at any intermediate point.
+Allows you to avoid accumulating a large set of changes and suffering through a painful merge
+
+Changing to get tests passign 1 lint at a time.
+
+These steps
+```ruby
+def container(number=:FIXME)
+  "bottles"
+end
+```
+
+use a placeholder for value. (This seems really dumb for this use case). Argument is often we have many callers and may need to add an arg to all of them.
+
+Now we can either
+
+- alter container to check the value of number and return "bottle" or "bottles," meaning
+change the receiver
+- alter the else branch to add the number argument to container message, meaning change the sender.
+
+ expand the code in container to use number to decide which of "bottle" or "bottles" to return, as follows:
+
+ ```ruby
+def container(number=:FIXME)
+  if number == 1
+    "bottle"
+  else
+    "bottles"
+  end
+end
+ ```
+
+ Now change sender to pass new arg `"#{number-1} #{container(number-1)} of beer on the wall.\n"`
+
+ Now remove `FIXME`
+
+ At this point, 2 and else are identical as 
+
+ ```ruby
+ "#{number} bottles of beer on the wall, " +
+"#{number} bottles of beer.\n" +
+"Take one down and pass it around, " +
+"#{number-1} #{container(number-1)} of beer on the wall.\n"
+ ```
+And can be collapsed in the case statement.
+
+### 3.8
+
+Sometimes the first step, refactoring to openness, requires such a large leap that it is not obvious how to achieve it. In that case, be guided by code smells. Improve code by identifying and removing smells, and have faith that as the code improves, a path to openness will appear.
+
+Making existing code open to a new requirement often requires identifying and naming abstractions. Follow Flocking rueles.
+
+1. Select the things that are most alike.
+2. Find the smallest difference between them.
+3. Make the simplest change that will remove that difference.
