@@ -332,3 +332,86 @@ Making existing code open to a new requirement often requires identifying and na
 1. Select the things that are most alike.
 2. Find the smallest difference between them.
 3. Make the simplest change that will remove that difference.
+
+
+## 4, Horizontal refactoring
+
+This chapter iteratively applies the Flocking Rules to the remaining special verses, and results in a single, more abstract, template that produces every possible verse.
+
+### 4.1 Replacing Difference with Sameness
+
+Now that verse 2 in else branch, 3 branches remain
+
+```ruby
+def verse(number)
+  case number
+  when 0
+    "No more bottles of beer on the wall, " + "no more bottles of beer.\n" +
+    "Go to the store and buy some more, " + "99 bottles of beer on the wall.\n"
+  when 1
+    "1 bottle of beer on the wall, " +
+    "1 bottle of beer.\n" +
+    "Take it down and pass it around, " + "no more bottles of beer on the wall.\n"
+  else
+    "#{number} bottles of beer on the wall, " +
+    "#{number} bottles of beer.\n" +
+    "Take one down and pass it around, " +
+    "#{number-1} #{container(number-1)} of beer on the wall.\n"
+  end
+end
+```
+
+Of above, 1 and else most similar, go through the lines 1 by one removing difference
+
+`"1 bottle of beer on the wall, "` => `"{number} bottle of beer on the wall, "` => 
+
+Above change increases level of abstraction
+
+`"#{number} #{container(number)} of beer on the wall, "  => `"#{number} #{container(number)} of beer on the wall, " `
+
+Now 1 and else are the same in the first line. Apply same change line 2
+
+### 4.2 Equivocating about names
+
+Pharase 3 ` "Take it down and pass it around, " ` VS `"Take one down and pass it around, "` IT vs ONE
+
+Options when names elude: take 5-10 min try your best, (my way), put a non-meaning i.e. foo to replace later(For me this makes interim logic harder) OR ask for help
+
+```ruby
+def pronoun(number)
+  if number == 1
+    "it"
+  else
+    "one"
+  end
+end
+```
+
+functionally equivalent to container
+
+### 4.3 Deriving Names from responsibilities
+
+phrase 4 difference
+
+`"no more bottles of beer on the wall.\n"`VS `"#{number-1} #{container(number-1)} of beer on the wall.\n"`
+
+"no more bottles of beer" is same, so effectively
+Goal: change next small difference, NOT clump of differences, we've already captured bottles vs bottle
+
+`"no more" VS "#{number-1}"`
+
+Here, for the first time, one is a string and the other is code. However, it doesn’t matter what form the difference takes.
+If each verse variant reflects a more general verse abstraction, then the differences between the variants must represent smaller concepts within that larger abstraction.
+
+Column header technique
+
+| Number | xxx?  |
+|--------|-------|
+| 99     | '99'  |
+| 50     | '50'       |
+| 1      | '1'        |
+| 0      | 'no more'  |
+
+^^ Quantity
+
+### 4.4 Choosing meaningful defaults
