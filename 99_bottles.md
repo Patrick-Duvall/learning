@@ -415,3 +415,224 @@ Column header technique
 ^^ Quantity
 
 ### 4.4 Choosing meaningful defaults
+
+Current difference: `"no more"` vs `"#{number - 1}"`
+
+Quantity
+
+```ruby
+def quantity(number)
+  if number == 0
+    "no more"
+  else
+  number
+  end
+end
+```
+
+At this juncture, 1 and else are identical
+
+```ruby
+when 1 or else
+"#{number} #{container(number)} of beer on the wall, " +
+"#{number} #{container(number)} of beer.\n" +
+"Take #{pronoun(number)} down and pass it around, " + "#{quantity(number-1)} #{container(number-1)} of beer on the wall.\n"
+```
+
+### 4.5. Seeking Stable Landing Points
+
+Due to following flocking rules our methods have a VERY similar shape of check one use case for a specificity, otherwise, generic case.
+
+```ruby
+def container(number)
+  if number == 1
+    "bottle"
+  else
+    "bottles"
+  end
+end
+
+def pronoun(number)
+  if number == 1
+    "it"
+  else
+    "one"
+  end
+end
+
+def quantity(number)
+  if number == 0
+    "no more"
+  else
+  number
+  end
+end
+```
+
+The consistency in the code above enables the next refactoring
+
+### 4.6 Obeying Liskov
+
+Remaining we need to unify these 2
+
+```ruby
+when 0
+  "No more bottles of beer on the wall, " +
+  "no more bottles of beer.\n" +
+  "Go to the store and buy some more, " +
+  "99 bottles of beer on the wall.\n"
+else
+  "#{number} #{container(number)} of beer on the wall, " +
+  "#{number} #{container(number)} of beer.\n" +
+  "Take #{pronoun(number)} down and pass it around, " +
+  "#{quantity(number-1)} #{container(number-1)} of beer on the wall.\n"
+end
+```
+
+conundrum: The lowercase variant of "no more" is required by verse 1, and now verse 0 needs the same two words, except capitalized as the start of a sentence
+
+We COULD try `"#{quantity(number).capitalize} bottles of beer on the wall`
+
+But this raises `NoMethodError: undefined method `capitalize' for 99:Integer`
+
+We want number capitalized when its "no more" but not 99.
+
+We could solve in verse BUT at this point , we are NOT trusting quantity to return a thing that responds to `capitalize`.(Aside: This lack of trust between objects leads to defensive programming and is a nightmare)
+```ruby
+when 0
+  "#{quantity(number).to_s.capitalize} bottles of beer on the wall, " + # ...
+else
+  "#{quantity(number).to_s.capitalize} #{container(number)} of beer on the wall, " +
+end 
+```
+
+ If quantity were more trustworthy, verse could know less
+
+ The idea of reducing the number of dependencies imposed upon message senders by requiring that receivers return trustworthy objects is a generalization of the Liskov Substitution Principle.
+
+ We can think of Liskov in terms of Role Players, objects that play a role and share an interface are interchangeable.
+
+  Instead of forcing the verse method to solve this problem, quantity should return a trustworthy object.
+
+```ruby
+def quantity(number)
+  if number == 0
+    "no more"
+  else
+    number.to_s
+  end
+end
+```
+
+### 4.7 Take Bigger Steps
+
+2 remaining differences
+
+First
+
+```ruby
+when 0 # ...
+  "Go to the store and buy some more, " +
+# ...
+else
+# ...
+  "Take #{pronoun(number)} down and pass it around, " +
+# ...
+end
+```
+
+remember, via flocking we name a concept, create a method to represent it, and then replace the difference with a message send
+
+drink OR shop => Action
+
+created method follows other flocked methods
+
+```ruby
+def action(number)
+  if number == 0
+    "Go to the store and buy some more"
+  else
+  "Take #{pronoun(number)} down and pass it around"
+  end
+end
+```
+
+Finally
+
+```ruby
+def verse(number)
+  case number
+  when 0
+    "99 bottles of beer on the wall.\n"
+  else
+    "#{quantity(number-1)} #{container(number-1)} of beer on the wall.\n"
+  end
+end
+```
+
+"99" vs "#{quantity(number-1)}"
+
+could 99 be a quantity?
+
+```ruby
+def quantity(number) 
+  case number
+  when -1
+    "99"
+  # ....
+```
+Seems deeply wrong, even if tests pass
+
+proposed change alters quantity such that:
+- its conditional has 3 branches instead of 2
+- it sometimes checks -1, which is an invalid number of beers
+
+1. What is the responsibility of the quantity method?
+2. Is there a way to make the fourth phrases more alike, even if not yet identical?
+
+"99 bottles of beer on the wall.\n" contains a hard coded 99. This is NOT a special case of the quantity concept
+
+you can make these lines a little bit more alike by passing the 99 into `quantity`
+
+```ruby
+when 0
+  "#{quantity(99)} #{container(number-1)} of beer on the wall.\n"
+else
+  "#{quantity(number-1)} #{container(number-1)} of beer on the wall.\n"
+```
+
+in ruby, `successor` handles what is `after` a number
+
+```ruby
+def successor(number)
+  if number == 0
+    99
+  else
+    number - 1
+  end
+end
+```
+
+Now else and 0 are both `"#{quantity(successor(number))} #{container(number-1)} of beer on the wall.\n"`
+
+```ruby
+def verse(number)
+"#{quantity(number).capitalize} #{container(number)} of beer on the wall, " + "#{quantity(number)} #{container(number)} of beer.\n" +
+"#{action(number)}, " +
+"#{quantity(successor(number))} #{container(successor(number))} of beer on the wall.\n"
+end
+```
+
+Is this code better? (I dislike it, its very functional, its a bunch of sequential processing)
+
+Higher complexity, metz argues is better. I argue is better IF further refactored.
+
+
+### 4.10. Summary
+If several different programmers started from Shameless Green and refactored the verse method according to the Flocking Rules, what would the resulting code look like?
+
+Everyone’s code would be identical, excepting the names used for the concepts. This has enormous value.
+
+Hmmmm this seems overly optimistic, like yes but I find this methodology cumbersome and unintuitive.
+
+## Chapter 5 Separating Responsibilities
