@@ -166,10 +166,10 @@ Question/observation: It seems that our two heavy refactors, BI and identity, ar
 - Why? Because there is NO user story at the end. It is small, changes, including dual writes, migrations, then a cutover after everything is on a new system.
 Open: Does it have to be this way?
 
-Tracer
 - Users get functionality early
 
 
+<<<<<<< HEAD
 ## Protoypes
 
 Be careful, your org might try and take your prototype as 'done' if this is a tendancy, prefer tracer bullets(getting it plumbed, happy path hitting full vertical stack)
@@ -200,3 +200,23 @@ Eating the Elephant: to some extent the only way to reliably estimate in an area
 AGILE: incremental develpoment. Do first bit, its value, then do next bit.
 
 Asked for estimate: say "Ill get back to you"
+=======
+### 12 Tracer Bullets
+- Plumb it, get a vertical slice across all parts of the stack
+
+Users see athing early
+
+Devs have structure
+
+A thing to demonstrate
+
+### 13 Protoypes and postint notes
+prototyping is a learning experience
+
+with post its => Flow diagram?
+
+If org will try to deploy prototype, use tracer bullets(plumbing
+
+### 14 Domain Languages
+"Limits of language are hte limts of one's world"
+>>>>>>> 0d9489d ([PragProg] Finish CH2)
