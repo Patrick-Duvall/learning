@@ -109,35 +109,36 @@ Decoupled code easier to test, more reusable.
   The core question is always: does having two of these break something, or just waste memory?
   If two would be wrong, a singleton is the right call. If two would just be redundant, memoization is enough.
 
-  ## Orthogonality
-  - means features compose independently — changing one thing doesn't unexpectedly affect another.
+## Orthogonality
 
-  ---
-  Object-Oriented: Lower Orthogonality
+- means features compose independently — changing one thing doesn't unexpectedly affect another.
 
-  - Coupled state and behavior. Methods mutate object state, spreading side effects implicitly across anything holding a reference.
-  - Inheritance entanglement. A subclass change can break parent or sibling behavior non-obviously; overriding one method often implies
-  constraints on others.
-  - Dual equality model. Identity (same reference) vs. structural equality forces two separate reasoning tracks simultaneously.
-  - Design patterns as workarounds. Observer, Decorator, Strategy exist largely to recover orthogonality the paradigm gave up.
+---
+Object-Oriented: Lower Orthogonality
 
-  ---
-  Functional: Higher Orthogonality
+- Coupled state and behavior. Methods mutate object state, spreading side effects implicitly across anything holding a reference.
+- Inheritance entanglement. A subclass change can break parent or sibling behavior non-obviously; overriding one method often implies
+constraints on others.
+- Dual equality model. Identity (same reference) vs. structural equality forces two separate reasoning tracks simultaneously.
+- Design patterns as workarounds. Observer, Decorator, Strategy exist largely to recover orthogonality the paradigm gave up.
 
-  - Pure functions compose freely. Output depends only on input — no hidden coupling between functions.
-  - Immutability eliminates shared-state interference. Transforms produce new values; the original is untouched.
-  - Effects are an explicit, separable concern. Systems like Haskell's IO make computation and side effects orthogonal by construction.
-  - Higher-order functions are uniformly composable. map, filter, fold work identically across any compatible structure — no special
-  cases.
+---
+Functional: Higher Orthogonality
 
-  ---
-  Core Tension
+- Pure functions compose freely. Output depends only on input — no hidden coupling between functions.
+- Immutability eliminates shared-state interference. Transforms produce new values; the original is untouched.
+- Effects are an explicit, separable concern. Systems like Haskell's IO make computation and side effects orthogonal by construction.
+- Higher-order functions are uniformly composable. map, filter, fold work identically across any compatible structure — no special
+cases.
 
-  OOP trades orthogonality for modeling intuition — objects mirror real-world entities naturally. FP recovers orthogonality but pushes
-  effectful complexity into the type system, making it explicit rather than hidden.
+---
+Core Tension
 
-  Modern languages (Scala, Rust, Kotlin, Swift) borrow from both: FP's immutability for data pipelines, OOP's encapsulation for module
-  boundaries.
+OOP trades orthogonality for modeling intuition — objects mirror real-world entities naturally. FP recovers orthogonality but pushes
+effectful complexity into the type system, making it explicit rather than hidden.
+
+Modern languages (Scala, Rust, Kotlin, Swift) borrow from both: FP's immutability for data pipelines, OOP's encapsulation for module
+boundaries.
 
 
 ### Reversability
@@ -167,3 +168,35 @@ Open: Does it have to be this way?
 
 Tracer
 - Users get functionality early
+
+
+## Protoypes
+
+Be careful, your org might try and take your prototype as 'done' if this is a tendancy, prefer tracer bullets(getting it plumbed, happy path hitting full vertical stack)
+
+## Domain Languages
+The timits of language are the limits of ones world
+Languages influence how you think
+Rspec is DL
+
+Internal use lang itself, get drawbacks and upsides of host lang
+External NO such restrictions if you can write a parser
+
+Off the shelf: YAML, JSON, CSV. If you cant reuse one of these, consider internal
+
+Internal DL : Just write functions to do the work. Rspec describe, it, expect are just methods under the hood.
+
+## 15 Estimating
+
+Larger units tend to get less pushback from stakeholders: 75 days implies more specificity than ~3 months
+
+Understand FULL scope
+
+Build bare model(prototype?)
+
+Ideal, realistic, worst case estimates
+
+Eating the Elephant: to some extent the only way to reliably estimate in an area is to gain experience in the area
+AGILE: incremental develpoment. Do first bit, its value, then do next bit.
+
+Asked for estimate: say "Ill get back to you"
