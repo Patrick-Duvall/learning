@@ -83,3 +83,46 @@ Sometimes it works locally, but crashes in prod. Get the full data set.
 Aside: Also consider ENV issues that may not repro locally.
 
 ### Binary chop
+
+Sort arr, look for specific val
+check midpoint, if yours, use it, else go right if higher, left if lower. Repeat until found. O(log n) vs O(n)
+
+run binary chop on interim commits
+
+Logging over debugging in is invaluable in concurrent processes, real time systems, and event based applications
+
+#### Rubber Ducking
+
+Attempt to explain a cause to someone else.
+
+Causes you to verbalize assumptions, often exposing them. 
+
+#### Process of Elimination
+
+Could be compiler, os, third party. Much more likely bug is in your code. (Some caveats working wiht third party integrations)
+
+Even if with third party, you need to eliminate your code before submitting bug report
+
+Aside: It's mentally rewarding/egotistic to assume the bug is someone else. We can do it as a first line to protect ourselves.
+
+If you see hoof prints, think horses, not zebras.
+
+When faced with a surprising failure, you must confront the fact one of your assumptions is wrong.
+
+When catching a surprise, dont just fix it. Determine WHY is was not caught earlier. Are there other places susceptible to this bug?
+
+Ask self: Is apparent problem true problem, or symptom?
+
+## 21 Text manipulation
+
+text manipulation languages analagous to routers in woodworking, noisy, messy, brute force
+
+`awk` and `sed`
+
+This book, PDF built in ruby, also code is tested, also website updated
+
+Aside ALOT of these skill sets seem to be significantly less important in the age of AI.
+
+## 22 Engineering Daybooks
+
+Daybook, use paper.
